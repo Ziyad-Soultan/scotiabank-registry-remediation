@@ -1,0 +1,108 @@
+{
+  "families": [
+    {
+      "name": "ubi9-openjdk-17",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/ubi9-openjdk-17"
+        ],
+        "imageRegexes": [
+          ".*openjdk.*",
+          ".*jdk.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/openjdk-17-runtime",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "ubi9-openjdk-17",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/ubi9-openjdk-17",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "ubi9-python-311",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/ubi9-python-311"
+        ],
+        "imageRegexes": [
+          ".*python-?3\\.11.*",
+          ".*python-?311.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/python-311",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "ubi9-python-311",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/ubi9-python-311",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "ubi9-nginx",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/ubi9-nginx"
+        ],
+        "imageRegexes": [
+          ".*nginx.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/nginx-124",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "ubi9-nginx",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/ubi9-nginx",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    }
+  ]
+}

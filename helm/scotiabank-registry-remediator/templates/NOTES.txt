@@ -1,0 +1,13 @@
+# Helm chart notes
+
+Before installing into a real namespace, replace:
+- `values.yaml` namespace, service account, PVC, schedule, and worker image placeholders
+- `files/source-locations.example.yaml` with real scanner handoff locations
+- `files/base-family-catalog.example.json` placeholder digests with approved pinned digests
+- `files/ownership-map.example.yaml` ownership/contact defaults
+
+Important:
+- The workflow templates implement the demo flow: inventory dedupe -> scan metadata planning -> approved upstream acquisition dry-run.
+- The refresh worker only acquires an approved upstream image and hands it off for existing cert/hardening processing.
+- It does not mutate running clusters, generate app PRs, push images, or perform cert injection/hardening itself.
+- Candidate verification, publication, and state tracking are still production integration work.

@@ -1,0 +1,47 @@
+[
+  {
+    "vulnerabilityId": "CVE-2026-0001",
+    "pkgName": "urllib3",
+    "installedVersion": "2.0.1",
+    "fixedVersion": "2.2.2",
+    "severity": "HIGH",
+    "title": "urllib3 sample vulnerability",
+    "primaryUrl": "https://example.com/CVE-2026-0001",
+    "target": "requirements.txt",
+    "class": "lang-pkgs",
+    "type": "pip",
+    "targetClass": "python",
+    "actionable": true,
+    "actionabilityReason": "fixed-version-available"
+  },
+  {
+    "vulnerabilityId": "CVE-2026-0002",
+    "pkgName": "requests",
+    "installedVersion": "2.30.0",
+    "fixedVersion": null,
+    "severity": "CRITICAL",
+    "title": "requests sample vulnerability",
+    "primaryUrl": "https://example.com/CVE-2026-0002",
+    "target": "requirements.txt",
+    "class": "lang-pkgs",
+    "type": "pip",
+    "targetClass": "python",
+    "actionable": false,
+    "actionabilityReason": "no-fixed-version"
+  },
+  {
+    "vulnerabilityId": "CVE-2026-1000",
+    "pkgName": "openssl-libs",
+    "installedVersion": "3.0.1",
+    "fixedVersion": "3.0.9",
+    "severity": "CRITICAL",
+    "title": "openssl sample vulnerability",
+    "primaryUrl": "https://example.com/CVE-2026-1000",
+    "target": "Red Hat Base Image",
+    "class": "os-pkgs",
+    "type": "rpm",
+    "targetClass": "rhel-base",
+    "actionable": true,
+    "actionabilityReason": "fixed-version-available"
+  }
+]

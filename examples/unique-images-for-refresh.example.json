@@ -1,0 +1,35 @@
+[
+  {
+    "canonicalKey": "registry.corp/apps/payments-api@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "image": "registry.corp/apps/payments-api@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "normalizedImageName": "registry.corp/apps/payments-api",
+    "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "clusters": ["prod-cluster-a"],
+    "workloads": [
+      {"clusterName": "prod-cluster-a", "namespace": "payments", "workloadKind": "Deployment", "workloadName": "payments-api"}
+    ],
+    "sightingCount": 3
+  },
+  {
+    "canonicalKey": "registry.corp/apps/edge-web@sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "image": "registry.corp/apps/edge-web@sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "normalizedImageName": "registry.corp/apps/edge-web",
+    "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "clusters": ["prod-cluster-b"],
+    "workloads": [
+      {"clusterName": "prod-cluster-b", "namespace": "edge", "workloadKind": "Deployment", "workloadName": "edge-web"}
+    ],
+    "sightingCount": 2
+  },
+  {
+    "canonicalKey": "registry.corp/apps/data-worker@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "image": "registry.corp/apps/data-worker@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "normalizedImageName": "registry.corp/apps/data-worker",
+    "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "clusters": ["prod-cluster-c"],
+    "workloads": [
+      {"clusterName": "prod-cluster-c", "namespace": "analytics", "workloadKind": "Deployment", "workloadName": "data-worker"}
+    ],
+    "sightingCount": 4
+  }
+]

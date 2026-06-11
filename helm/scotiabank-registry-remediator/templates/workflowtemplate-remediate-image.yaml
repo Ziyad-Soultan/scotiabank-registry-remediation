@@ -1,0 +1,78 @@
+# Base-family refresh child workflow.
+#
+# Purpose in the system:
+# - Takes one deduplicated family refresh plan.
+# - Grabs the approved upstream base image for that family.
+# - Hands it off to the existing cert injection, hardening, rebuild, verification, and publish process.
+#
+# Why it is needed:
+# - A Trivy/Aqua event should not trigger one-off ad hoc app image rebuilds.
+# - The controlled action is to refresh the managed internal golden base family once, then let downstream consumers adopt it.
+#
+# How it plugs in:
+# - The metadata planner child emits one JSON family plan per impacted base family.
+# - The parent fans this template out once per family plan.
+# - This child only acquires the corporate-approved upstream base. Later processing owns rebuild/publish.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: scotiabank-registry-remediator-refresh-base-family
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: refresh-base-family
+  volumes:
+    - name: shared-work
+      persistentVolumeClaim:
+        claimName: {{ .Values.argo.pvc.claimName | quote }}
+    - name: refresh-script
+      configMap:
+        name: scotiabank-registry-remediator-refresh-base-family-script
+        defaultMode: 0755
+  templates:
+    - name: refresh-base-family
+      inputs:
+        parameters:
+          - name: family-plan
+      container:
+        image: "{{ .Values.images.builder.repository }}:{{ .Values.images.builder.tag }}"
+        command: [sh, -c]
+        env:
+          - name: REFRESH_MODE
+            value: {{ .Values.refreshBaseFamily.mode | quote }}
+          - name: ALLOWED_UPSTREAM_SOURCE_TYPES
+            value: {{ join "," .Values.refreshBaseFamily.allowedUpstreamSourceTypes | quote }}
+          - name: ALLOWED_UPSTREAM_REGISTRIES
+            value: {{ join "," .Values.refreshBaseFamily.allowedUpstreamRegistries | quote }}
+          - name: UPSTREAM_HANDOFF_DIR
+            value: {{ .Values.workflowPaths.upstreamBaseHandoffDir | quote }}
+        args:
+          - |
+            set -euo pipefail
+
+            ALLOW_UNPINNED_ARG=""
+            {{ if .Values.refreshBaseFamily.allowUnpinnedApprovedUpstream }}
+            ALLOW_UNPINNED_ARG="--allow-unpinned-approved-upstream"
+            {{ end }}
+
+            cat > /tmp/family-plan.json <<'JSON'
+            {{`{{inputs.parameters.family-plan}}`}}
+            JSON
+            python3 /opt/remediator/refresh_base_family.py \
+              /tmp/family-plan.json \
+              /tmp/family-refresh-output.json \
+              --handoff-dir "${UPSTREAM_HANDOFF_DIR}" \
+              --mode "${REFRESH_MODE}" \
+              ${ALLOW_UNPINNED_ARG} \
+              --workflow-id "{{`{{workflow.name}}`}}"
+        volumeMounts:
+          - name: shared-work
+            mountPath: {{ .Values.argo.pvc.mountPath | quote }}
+          - name: refresh-script
+            mountPath: /opt/remediator
+      outputs:
+        parameters:
+          - name: family-refresh-output
+            valueFrom:
+              # Compact JSON handoff for downstream cert/hardening processing.
+              path: /tmp/family-refresh-output.json

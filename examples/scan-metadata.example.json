@@ -1,0 +1,83 @@
+[
+  {
+    "schemaVersion": "scan-metadata/v1",
+    "image": "registry.corp/apps/payments-api:1.2.3",
+    "normalizedImageName": "registry.corp/apps/payments-api",
+    "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "scanner": "trivy",
+    "scannerVersion": "0.52.2",
+    "scanTimestamp": "2026-06-11T14:30:00Z",
+    "baseFamily": "ubi9-openjdk-17",
+    "baseImage": {
+      "image": "registry.corp/base/ubi9-openjdk-17:approved",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "family": "ubi9-openjdk-17",
+      "source": "scanner-lineage"
+    },
+    "managedBaseImage": true,
+    "targetClasses": [
+      "rhel-base",
+      "jdk-runtime"
+    ],
+    "criticalCount": 1,
+    "highCount": 4,
+    "fixableCriticalCount": 1,
+    "fixableHighCount": 3,
+    "summaryPath": "gs://existing-scanner/metadata/payments-api-summary.json",
+    "reportPath": "gs://existing-scanner/reports/payments-api.html"
+  },
+  {
+    "schemaVersion": "scan-metadata/v1",
+    "image": "registry.corp/apps/edge-web:4.5.6",
+    "normalizedImageName": "registry.corp/apps/edge-web",
+    "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "scanner": "trivy",
+    "scannerVersion": "0.52.2",
+    "scanTimestamp": "2026-06-11T14:31:00Z",
+    "baseFamily": "ubi9-nginx",
+    "baseImage": {
+      "image": "registry.corp/base/ubi9-nginx:stable",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "family": "ubi9-nginx",
+      "source": "scanner-lineage"
+    },
+    "managedBaseImage": true,
+    "targetClasses": [
+      "nginx",
+      "os-package"
+    ],
+    "criticalCount": 0,
+    "highCount": 3,
+    "fixableCriticalCount": 0,
+    "fixableHighCount": 2,
+    "summaryPath": "gs://existing-scanner/metadata/edge-web-summary.json",
+    "reportPath": "gs://existing-scanner/reports/edge-web.html"
+  },
+  {
+    "schemaVersion": "scan-metadata/v1",
+    "image": "registry.corp/apps/data-worker:7.8.9",
+    "normalizedImageName": "registry.corp/apps/data-worker",
+    "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "scanner": "trivy",
+    "scannerVersion": "0.52.2",
+    "scanTimestamp": "2026-06-11T14:32:00Z",
+    "baseFamily": "ubi9-python-311",
+    "baseImage": {
+      "image": "registry.corp/base/ubi9-python-311:approved",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "family": "ubi9-python-311",
+      "source": "scanner-lineage"
+    },
+    "managedBaseImage": true,
+    "targetClasses": [
+      "rhel-base",
+      "python-runtime"
+    ],
+    "criticalCount": 0,
+    "highCount": 5,
+    "fixableCriticalCount": 0,
+    "fixableHighCount": 4,
+    "summaryPath": "gs://existing-scanner/metadata/data-worker-summary.json",
+    "reportPath": "gs://existing-scanner/reports/data-worker.html"
+  }
+]

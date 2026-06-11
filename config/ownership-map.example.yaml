@@ -1,0 +1,32 @@
+# Registry base-family catalog used by the refresh planner and rebuild workers.
+#
+# Purpose in the system:
+# - maps runtime/scanner findings back to the internal approved base families you actually maintain
+# - tells the system which upstream source, customization profile, and target registry repo belong to each family
+#
+# Why it is needed:
+# - Trivy/Aqua events tell you something is vulnerable
+# - they do NOT magically tell you which internal golden base should be rebuilt
+#
+# How it plugs in:
+# - the metadata-planning step reads this catalog after dedupe
+# - the refresh worker uses it to acquire the approved upstream image for downstream cert/hardening processing
+
+baseFamilyCatalog:
+  catalogFile: "config/base-family-catalog.example.json"
+  ownerModel:
+    owningTeam: "REPLACE WITH platform/base-image team"
+    ownerContact:
+      slackChannel: "REPLACE WITH Slack or Teams channel"
+      email: "REPLACE WITH distro or team email"
+
+  publicationDefaults:
+    registry: "REPLACE WITH internal registry host"
+    immutableTagConvention: "YYYY.MM.DD-workflow"
+    movingTags:
+      - approved
+      - stable
+
+  notes:
+    - "This file points at the JSON family catalog because the runtime helper scripts intentionally stay stdlib-only."
+    - "Keep family definitions version-controlled. Do not hide customization logic only inside previously built images."

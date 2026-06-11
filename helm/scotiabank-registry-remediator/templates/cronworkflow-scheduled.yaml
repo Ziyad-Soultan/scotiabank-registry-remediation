@@ -1,0 +1,25 @@
+# Optional scheduler for the whole pipeline.
+#
+# Purpose in the system:
+# - Starts the top-level orchestrator on a schedule.
+#
+# Why it is needed:
+# - The remediation platform is meant to run repeatedly as new images appear and old ones change.
+# - A CronWorkflow gives you recurring inventory/scan/remediation without an external scheduler.
+#
+# How it plugs in:
+# - This is just the trigger.
+# - The real work happens in the orchestrator WorkflowTemplate it references.
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: scotiabank-registry-remediator-scheduled
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  schedule: {{ .Values.schedule.cron | quote }}
+  # Forbid overlap so two runs do not fight over the same shared data and candidate outputs.
+  concurrencyPolicy: Forbid
+  workflowSpec:
+    serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+    workflowTemplateRef:
+      name: scotiabank-registry-remediator-orchestrator

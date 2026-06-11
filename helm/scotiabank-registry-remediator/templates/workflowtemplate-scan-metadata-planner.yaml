@@ -1,0 +1,80 @@
+# Scan-metadata planning child workflow.
+#
+# Purpose in the system:
+# - Reads compact vulnerability metadata produced by the existing Aqua/Trivy workflow.
+# - Joins that metadata with deduplicated runtime images.
+# - Produces deduplicated internal base-family refresh plans.
+#
+# Why it is needed:
+# - You asked to work around the current scanning stack instead of replacing it.
+# - This step lets remediation stay event-driven from scanner findings without storing or reprocessing full image archives.
+#
+# How it plugs in:
+# - inventory-dedup produces unique-images.json.
+# - this child reads unique-images.json + scan-metadata.json + base-family-catalog.json.
+# - its output is the family-level fan-out input for the upstream acquisition child workflow.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: scotiabank-registry-remediator-scan-metadata-planner
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: plan-refresh
+  volumes:
+    - name: shared-work
+      persistentVolumeClaim:
+        claimName: {{ .Values.argo.pvc.claimName | quote }}
+    - name: planner-script
+      configMap:
+        name: scotiabank-registry-remediator-metadata-planner-script
+        defaultMode: 0755
+    - name: family-catalog
+      configMap:
+        name: {{ .Values.familyCatalog.configMapName | quote }}
+  templates:
+    - name: plan-refresh
+      container:
+        image: "{{ .Values.images.workflowUtils.repository }}:{{ .Values.images.workflowUtils.tag }}"
+        command: [sh, -c]
+        args:
+          - |
+            set -euo pipefail
+            test -f {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json
+            test -f {{ .Values.existingScanner.scanMetadata.inputPath | quote }}
+            test -f {{ .Values.familyCatalog.inputPath | quote }}
+
+            # Build a refresh plan strictly from:
+            # - running image inventory
+            # - existing scanner metadata
+            # - internal base-family catalog
+            # This avoids the storage/computation hit of archiving or rescanning every source image.
+            python /opt/remediator/plan_base_refresh_from_scan_metadata.py \
+              {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json \
+              {{ .Values.existingScanner.scanMetadata.inputPath | quote }} \
+              {{ .Values.familyCatalog.inputPath | quote }} \
+              /tmp/refresh-plan
+            mkdir -p {{ .Values.workflowPaths.refreshPlanOutputDir | quote }}
+            cp /tmp/refresh-plan/* {{ .Values.workflowPaths.refreshPlanOutputDir | quote }}/
+        volumeMounts:
+          - name: shared-work
+            mountPath: {{ .Values.argo.pvc.mountPath | quote }}
+          - name: planner-script
+            mountPath: /opt/remediator
+          - name: family-catalog
+            mountPath: /opt/remediator/catalog
+      outputs:
+        parameters:
+          - name: family-acquisition-fanout
+            valueFrom:
+              # Minimal family/upstream list used by the parent workflow to fan out acquisition children.
+              path: /tmp/refresh-plan/family-acquisition-fanout.min.json
+        artifacts:
+          - name: image-evaluations-artifact
+            path: /tmp/refresh-plan/image-evaluations.json
+          - name: family-refresh-plans-artifact
+            path: /tmp/refresh-plan/family-refresh-plans.json
+          - name: family-acquisition-fanout-artifact
+            path: /tmp/refresh-plan/family-acquisition-fanout.min.json
+          - name: family-refresh-summary-artifact
+            path: /tmp/refresh-plan/family-refresh-summary.json

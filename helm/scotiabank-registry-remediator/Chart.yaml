@@ -1,0 +1,6 @@
+apiVersion: v2
+name: scotiabank-registry-remediator
+description: Argo/Helm scaffold for artifact-centric image vulnerability scanning and remediation
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

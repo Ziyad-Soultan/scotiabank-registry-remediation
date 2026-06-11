@@ -1,0 +1,10 @@
+{
+  "inputRecordCount": 15,
+  "uniqueImageCount": 11,
+  "deduplicatedRecordCount": 4,
+  "uniqueWithDigestCount": 0,
+  "uniqueWithoutDigestCount": 11,
+  "sourceTypeCounts": {
+    "cluster": 15
+  }
+}

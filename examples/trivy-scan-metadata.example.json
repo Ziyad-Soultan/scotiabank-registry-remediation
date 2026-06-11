@@ -1,0 +1,28 @@
+[
+  {
+    "schemaVersion": "scan-metadata/v1",
+    "image": "internal-registry.example.com/platform/python-api:1.2.3",
+    "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "scanner": "trivy",
+    "scannerVersion": "0.52.2",
+    "scanTimestamp": "2026-06-11T14:33:00Z",
+    "baseFamily": "ubi9-python-311",
+    "baseImage": {
+      "image": "registry.corp/base/ubi9-python-311:approved",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "family": "ubi9-python-311",
+      "source": "scanner-lineage"
+    },
+    "managedBaseImage": true,
+    "targetClasses": [
+      "python",
+      "rhel-base"
+    ],
+    "criticalCount": 2,
+    "highCount": 1,
+    "fixableCriticalCount": 1,
+    "fixableHighCount": 1,
+    "summaryPath": "examples/trivy-scan-metadata.example.json",
+    "rawReportPath": "examples/trivy-report.example.json"
+  }
+]

@@ -1,0 +1,50 @@
+# Top-level orchestration workflow.
+#
+# Purpose in the system:
+# - Coordinates the major phases in order.
+# - Uses the current scanner's running-image inventory and vulnerability metadata as inputs.
+# - Fans out only the expensive registry rebuild work that actually needs to happen.
+#
+# Why it is needed:
+# - The platform should stay event-driven from Trivy/Aqua findings without rebuilding everything all the time.
+# - Argo gives you explicit parent/child boundaries for normalize -> plan -> refresh -> verify.
+#
+# How it plugs in:
+# - The existing image-dump/scanner stack produces images.json + scan-metadata.json.
+# - This orchestrator deduplicates the running image inventory, converts scanner metadata into family refresh plans,
+#   then fans out one child refresh per internal base family that actually needs work.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: scotiabank-registry-remediator-orchestrator
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: orchestrate
+  templates:
+    - name: orchestrate
+      steps:
+        - - name: inventory-dedup
+            templateRef:
+              name: scotiabank-registry-remediator-inventory-dedup
+              template: inventory-dedup
+        - - name: plan-family-refreshes
+            templateRef:
+              name: scotiabank-registry-remediator-scan-metadata-planner
+              template: plan-refresh
+        - - name: refresh-each-family
+            templateRef:
+              name: scotiabank-registry-remediator-refresh-base-family
+              template: refresh-base-family
+            arguments:
+              parameters:
+                - name: family-plan
+                  value: "{{`{{item}}`}}"
+            # Fan out one upstream acquisition per internal base family, not per vulnerable app image.
+            withParam: "{{`{{steps.plan-family-refreshes.outputs.parameters.family-acquisition-fanout}}`}}"
+
+    # The missing production pieces are now explicit instead of hand-wavy:
+    # - optional event dedupe window so repeated Trivy/Aqua events for the same family do not spam rebuilds
+    # - integration from upstream handoff into the existing cert/hardening/rebuild process
+    # - post-build Trivy verification + publication gate against the candidate digest
+    # - state recording so the next event knows the family was already refreshed recently

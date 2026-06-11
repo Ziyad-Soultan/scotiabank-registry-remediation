@@ -1,0 +1,14 @@
+{{- if .Values.argo.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.argo.pvc.claimName | quote }}
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.argo.pvc.size | quote }}
+  storageClassName: {{ .Values.argo.pvc.storageClassName | quote }}
+{{- end }}

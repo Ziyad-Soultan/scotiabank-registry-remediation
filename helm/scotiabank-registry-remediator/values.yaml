@@ -1,0 +1,143 @@
+# Global Helm naming overrides. Leave blank unless the cluster naming convention forces you
+# to pin object names. These do not change system behavior; they only affect resource names.
+nameOverride: ""
+fullnameOverride: ""
+
+# Namespace where the WorkflowTemplates, CronWorkflow, ConfigMaps, and optional PVC live.
+# This is the logical home of the remediation control plane.
+namespace: "REPLACE WITH target namespace for Argo workflows"
+
+# The Argo workflow service account. The workflows need a service account because they will
+# read ConfigMaps, mount PVCs, talk to object storage / shared volumes, acquire approved
+# upstream bases, and hand them to the existing rebuild process.
+serviceAccount:
+  create: false
+  name: "REPLACE WITH service account name"
+
+argo:
+  workflowLabels:
+    # Shared label so all workflow runs are easy to find and report on.
+    app.kubernetes.io/part-of: scotiabank-registry-remediator
+  artifactRepository:
+    # Where Argo stores larger workflow artifacts such as full JSON outputs.
+    # Parameters are good for small control data; artifacts are for the heavier evidence.
+    bucketOrPath: "REPLACE WITH artifact repository bucket/path"
+  pvc:
+    # Shared scratch space for workflow steps that exchange files.
+    enabled: true
+    claimName: "REPLACE WITH PVC name for shared workflow data"
+    mountPath: /work/shared
+    storageClassName: "REPLACE WITH storage class name"
+    size: 20Gi
+
+schedule:
+  # Optional CronWorkflow trigger for repeated runs.
+  cron: "REPLACE WITH cron schedule, e.g. 0 * * * *"
+
+images:
+  workflowUtils:
+    # Lightweight Python image used for helper scripts such as dedupe and refresh planning.
+    repository: python
+    tag: "3.12-slim"
+  trivy:
+    # Used to verify rebuilt candidate base images before publication.
+    # Aqua is the vendor; aquasec/trivy is the normal public image path.
+    repository: aquasec/trivy
+    tag: "0.52.2"
+  builder:
+    # Worker image must include python3 plus skopeo for approved upstream acquisition.
+    # Keep this image internally built, pinned, scanned, and approved by platform policy.
+    repository: "REPLACE WITH internally approved skopeo worker image"
+    tag: "REPLACE WITH builder image tag"
+
+existingScanner:
+  runningImageInventory:
+    # Path to the running-image list produced by the current image dump agent / scanner pipeline.
+    inputPath: "/work/shared/images.json"
+    format: "json"
+  scanMetadata:
+    # Path to compact metadata exported by the current Aqua/Trivy reporting pipeline.
+    # Prefer summary JSON over raw archived image blobs to save storage and avoid duplicate work.
+    inputPath: "/work/shared/scan-metadata.json"
+    format: "json"
+    preferSummaryMetadata: true
+  evidence:
+    # Optional links/paths to HTML or CSV scanner artifacts. Nice for audit/debug, not required for planning.
+    htmlReportPrefix: "REPLACE WITH existing scanner HTML report prefix"
+    csvSummaryPrefix: "REPLACE WITH existing scanner CSV summary prefix"
+
+familyCatalog:
+  # JSON catalog that maps runtime images or scanner-declared families to managed internal base families.
+  # The planner uses this to decide what should be rebuilt when scanner metadata says a running image is vulnerable.
+  inputPath: "/opt/remediator/catalog/base-family-catalog.example.json"
+  configMapName: scotiabank-registry-remediator-family-catalog
+
+workflowPaths:
+  # Shared handoff locations across child workflows. Using small JSON metadata files here is fine.
+  # Storing giant archived image tarballs here would be stupid and expensive.
+  dedupeOutputDir: "/work/shared/dedupe-output"
+  refreshPlanOutputDir: "/work/shared/refresh-plan"
+  upstreamBaseHandoffDir: "/work/shared/upstream-bases"
+
+severityThresholds:
+  actionable:
+    # Metadata planner should only react to fixable High/Critical issues.
+    - CRITICAL
+    - HIGH
+
+concurrency:
+  # Inventory normalization is cheap.
+  inventory: 2
+  # Planning is a single metadata-reduction phase in this scaffold.
+  planning: 2
+  # Family refreshes are expensive because they rebuild and publish registry artifacts.
+  familyRefreshFanout: 2
+  # Candidate verification is also bounded because it pulls/scans candidate images.
+  verificationFanout: 2
+
+metadataMode:
+  # The whole point of this redesign is to work from existing scanner metadata.
+  # Keep full image archives out of this pipeline unless you are forced to fall back.
+  preferMetadataOnly: true
+  keepFullImageArchives: false
+  requireManagedBaseSignal: true
+
+baseClassesEligibleForRefresh:
+  # Only these classes should automatically trigger internal base-family rebuilds.
+  # This keeps the registry-focused scope sane and avoids pretending app dependency fixes are free.
+  - rhel-base
+  - os-package
+  - nginx
+  - java-runtime
+  - jdk-runtime
+  - python-runtime
+
+publication:
+  # Where rebuilt internal base images go.
+  candidateRegistry: "REPLACE WITH internal registry host for candidate images"
+  publishMovingTags:
+    - approved
+    - stable
+  immutableTagFormat: "YYYY.MM.DD-workflow"
+  signImages: false
+
+verification:
+  # Gate used after rebuilding a candidate base image.
+  maxCritical: 0
+  maxHigh: 5
+  requireRescan: true
+
+refreshBaseFamily:
+  # Default to a non-mutating run. Change to execute only after the worker image,
+  # registry auth, catalog entries, and approval flow are wired in.
+  mode: dry-run
+  # Corporate-safe source controls. Keep this tight and make exceptions through
+  # version-controlled values instead of ad hoc workflow edits.
+  allowedUpstreamSourceTypes:
+    - redhat-catalog
+    - internal-approved-registry
+  allowedUpstreamRegistries:
+    - registry.redhat.io
+  # Require upstream.digest or an image ref with @sha256 by default. This blocks
+  # accidental drift from mutable vendor tags.
+  allowUnpinnedApprovedUpstream: false

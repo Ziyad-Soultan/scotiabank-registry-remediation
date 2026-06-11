@@ -1,0 +1,74 @@
+# ConfigMaps that inject runtime metadata and helper scripts into the workflows.
+#
+# Purpose in the system:
+# - Package example configs and Python helper scripts with the chart.
+# - Make the workflows self-contained so Argo can mount what it needs at runtime.
+#
+# Why it is needed:
+# - The platform now works from existing scanner outputs instead of re-archiving whole images.
+# - The workflows therefore need:
+#   - dedupe logic for running-image inventory
+#   - metadata-planning logic for existing scan summaries
+#   - base-family catalog data for deterministic rebuild routing
+#
+# How it plugs in:
+# - inventory-dedup mounts the dedupe script ConfigMap.
+# - plan-refresh mounts the metadata planner script ConfigMap.
+# - the family catalog ConfigMap tells the planner/acquisition worker which upstream path belongs to each managed base family.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scotiabank-registry-remediator-ownership
+  namespace: {{ .Values.namespace | quote }}
+data:
+  ownership-map.example.yaml: |
+{{ (.Files.Get "files/ownership-map.example.yaml") | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scotiabank-registry-remediator-sources
+  namespace: {{ .Values.namespace | quote }}
+data:
+  source-locations.example.yaml: |
+{{ (.Files.Get "files/source-locations.example.yaml") | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scotiabank-registry-remediator-dedupe-script
+  namespace: {{ .Values.namespace | quote }}
+data:
+  deduplicate_image_records.py: |
+{{ (.Files.Get "files/deduplicate_image_records.py") | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scotiabank-registry-remediator-metadata-planner-script
+  namespace: {{ .Values.namespace | quote }}
+data:
+  plan_base_refresh_from_scan_metadata.py: |
+{{ (.Files.Get "files/plan_base_refresh_from_scan_metadata.py") | indent 4 }}
+  trivy_to_scan_metadata.py: |
+{{ (.Files.Get "files/trivy_to_scan_metadata.py") | indent 4 }}
+  filter_trivy_actionable.py: |
+{{ (.Files.Get "files/filter_trivy_actionable.py") | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scotiabank-registry-remediator-refresh-base-family-script
+  namespace: {{ .Values.namespace | quote }}
+data:
+  refresh_base_family.py: |
+{{ (.Files.Get "files/refresh_base_family.py") | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.familyCatalog.configMapName | quote }}
+  namespace: {{ .Values.namespace | quote }}
+data:
+  base-family-catalog.example.json: |
+{{ (.Files.Get "files/base-family-catalog.example.json") | indent 4 }}

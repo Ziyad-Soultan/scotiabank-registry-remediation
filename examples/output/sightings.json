@@ -1,0 +1,167 @@
+{
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::af.cds.bns:5002/aqua/scanner::2022.4.484": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "argo-hk",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "af.cds.bns:5002/aqua/scanner:2022.4.484",
+      "normalizedImageName": "af.cds.bns:5002/aqua/scanner",
+      "normalizedReference": "af.cds.bns:5002/aqua/scanner:2022.4.484",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::quay.io/argoproj/argocli::v3.6.7": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "argo-hk",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "quay.io/argoproj/argocli:v3.6.7",
+      "normalizedImageName": "quay.io/argoproj/argocli",
+      "normalizedReference": "quay.io/argoproj/argocli:v3.6.7",
+      "notes": "Expanded from nested images.json runtime inventory"
+    },
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "argo",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "quay.io/argoproj/argocli:v3.6.7",
+      "normalizedImageName": "quay.io/argoproj/argocli",
+      "normalizedReference": "quay.io/argoproj/argocli:v3.6.7",
+      "notes": "Expanded from nested images.json runtime inventory"
+    },
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "shared-platform",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "quay.io/argoproj/argocli:v3.6.7",
+      "normalizedImageName": "quay.io/argoproj/argocli",
+      "normalizedReference": "quay.io/argoproj/argocli:v3.6.7",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::quay.io/argoproj/workflow-controller::v3.6.7": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "argo",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "quay.io/argoproj/workflow-controller:v3.6.7",
+      "normalizedImageName": "quay.io/argoproj/workflow-controller",
+      "normalizedReference": "quay.io/argoproj/workflow-controller:v3.6.7",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/apps/data-worker::7.8.9": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "analytics",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/apps/data-worker:7.8.9",
+      "normalizedImageName": "registry.corp/apps/data-worker",
+      "normalizedReference": "registry.corp/apps/data-worker:7.8.9",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/apps/edge-web::4.5.6": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "edge",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/apps/edge-web:4.5.6",
+      "normalizedImageName": "registry.corp/apps/edge-web",
+      "normalizedReference": "registry.corp/apps/edge-web:4.5.6",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/apps/payments-api::1.2.3": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "payments",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/apps/payments-api:1.2.3",
+      "normalizedImageName": "registry.corp/apps/payments-api",
+      "normalizedReference": "registry.corp/apps/payments-api:1.2.3",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/base/ubi9-nginx::stable": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "edge",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/base/ubi9-nginx:stable",
+      "normalizedImageName": "registry.corp/base/ubi9-nginx",
+      "normalizedReference": "registry.corp/base/ubi9-nginx:stable",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/base/ubi9-openjdk-17::approved": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "payments",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/base/ubi9-openjdk-17:approved",
+      "normalizedImageName": "registry.corp/base/ubi9-openjdk-17",
+      "normalizedReference": "registry.corp/base/ubi9-openjdk-17:approved",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/base/ubi9-python-311::approved": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "analytics",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/base/ubi9-python-311:approved",
+      "normalizedImageName": "registry.corp/base/ubi9-python-311",
+      "normalizedReference": "registry.corp/base/ubi9-python-311:approved",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/tools/log-forwarder::2.0.1": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "shared-platform",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/tools/log-forwarder:2.0.1",
+      "normalizedImageName": "registry.corp/tools/log-forwarder",
+      "normalizedReference": "registry.corp/tools/log-forwarder:2.0.1",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ],
+  "dockerfile-source::UNKNOWN::UNKNOWN::UNKNOWN::registry.corp/tools/metrics-sidecar::0.14.0": [
+    {
+      "sourceType": "cluster",
+      "sourceName": "argo-workflows",
+      "environmentType": "unknown",
+      "namespace": "shared-platform",
+      "ownerTeam": "gpedev",
+      "imageReferenceSeen": "registry.corp/tools/metrics-sidecar:0.14.0",
+      "normalizedImageName": "registry.corp/tools/metrics-sidecar",
+      "normalizedReference": "registry.corp/tools/metrics-sidecar:0.14.0",
+      "notes": "Expanded from nested images.json runtime inventory"
+    }
+  ]
+}

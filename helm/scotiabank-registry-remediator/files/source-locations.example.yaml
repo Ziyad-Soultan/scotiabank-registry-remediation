@@ -1,0 +1,33 @@
+# Existing scanner integration points.
+#
+# This repo now assumes there is already a cluster/runtime scanning platform that produces:
+# - a running-image inventory file (for example images.json from the image dump agent)
+# - vulnerability metadata files (JSON summaries, parsed CSV exports, or equivalent)
+#
+# The remediation platform consumes those outputs instead of re-archiving every image itself.
+
+existingScanner:
+  runningImageInventory:
+    sourceType: "object-store"
+    format: "json"
+    location: "REPLACE WITH gs://bucket/path/images.json or PVC path"
+    notes: "Produced by the existing cluster image dump agent. This must contain all running image references for the cluster/environment scope being remediated."
+
+  scanMetadata:
+    sourceType: "object-store"
+    format: "json"
+    location: "REPLACE WITH gs://bucket/path/scan-metadata.json or PVC path"
+    notes: "Produced by the existing Aqua/Trivy scan pipeline. Prefer compact metadata/summary JSON over full image archives."
+
+  reportMetadata:
+    sourceType: "pvc-or-object-store"
+    htmlReportPrefix: "REPLACE WITH /scans or gs:// path if HTML reports still exist"
+    csvSummaryPrefix: "REPLACE WITH /reports or gs:// path if CSV metrics still exist"
+    notes: "Optional evidence links only. The remediation planner should rely on metadata JSON, not huge archived image blobs."
+
+metadataStorageMode:
+  preferSummaryMetadata: true
+  keepFullImageArchives: false
+  keepScannerHtmlReports: true
+  keepScannerJsonReports: true
+  notes: "Storage should bias toward scan metadata + links to evidence, not duplicate image archives."

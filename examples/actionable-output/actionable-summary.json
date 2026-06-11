@@ -1,0 +1,16 @@
+{
+  "totalHighOrCritical": 3,
+  "actionableCount": 2,
+  "nonActionableCount": 1,
+  "bySeverity": {
+    "CRITICAL": 2,
+    "HIGH": 1
+  },
+  "byTargetClass": {
+    "python": 2,
+    "rhel-base": 1
+  },
+  "nonActionableReasons": {
+    "no-fixed-version": 1
+  }
+}

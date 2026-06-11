@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/scotiabank/collected-image-record.schema.json",
+  "title": "CollectedImageRecord",
+  "type": "object",
+  "properties": {
+    "image": {"type": "string"},
+    "imageReference": {"type": "string"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$"},
+    "tag": {"type": "string"},
+    "sourceType": {"type": "string", "enum": ["cluster", "registry", "local-machine"]},
+    "sourceName": {"type": "string"},
+    "environmentType": {"type": "string", "enum": ["cloud", "on-prem", "local", "shared"]},
+    "clusterName": {"type": ["string", "null"]},
+    "registryName": {"type": ["string", "null"]},
+    "machineName": {"type": ["string", "null"]},
+    "namespace": {"type": ["string", "null"]},
+    "workloadKind": {"type": ["string", "null"]},
+    "workloadName": {"type": ["string", "null"]},
+    "ownerTeam": {"type": ["string", "null"]},
+    "ownerContact": {"type": ["object", "null"]},
+    "sourceRepoUrl": {"type": ["string", "null"]},
+    "sourceRepoPath": {"type": ["string", "null"]},
+    "dockerfilePath": {"type": ["string", "null"]},
+    "helmChartPath": {"type": ["string", "null"]},
+    "buildPipelineUrl": {"type": ["string", "null"]},
+    "prTargetRepoUrl": {"type": ["string", "null"]},
+    "prTargetBranch": {"type": ["string", "null"]},
+    "labels": {"type": ["object", "null"]},
+    "annotations": {"type": ["object", "null"]},
+    "submittedAt": {"type": ["string", "null"]},
+    "notes": {"type": ["string", "null"]}
+  },
+  "anyOf": [
+    {"required": ["image"]},
+    {"required": ["imageReference"]}
+  ],
+  "required": ["sourceType", "sourceName", "environmentType"],
+  "additionalProperties": true
+}

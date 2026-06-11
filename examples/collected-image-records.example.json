@@ -1,0 +1,51 @@
+{
+  "epm_code": "gpedev",
+  "project_name": "argo-workflows",
+  "namespaces": [
+    {
+      "namespace": "argo-hk",
+      "images": [
+        "af.cds.bns:5002/aqua/scanner:2022.4.484",
+        "quay.io/argoproj/argocli:v3.6.7"
+      ]
+    },
+    {
+      "namespace": "argo",
+      "images": [
+        "quay.io/argoproj/workflow-controller:v3.6.7",
+        "quay.io/argoproj/argocli:v3.6.7"
+      ]
+    },
+    {
+      "namespace": "payments",
+      "images": [
+        "registry.corp/apps/payments-api:1.2.3",
+        "registry.corp/apps/payments-api:1.2.3",
+        "registry.corp/base/ubi9-openjdk-17:approved"
+      ]
+    },
+    {
+      "namespace": "edge",
+      "images": [
+        "registry.corp/apps/edge-web:4.5.6",
+        "registry.corp/base/ubi9-nginx:stable"
+      ]
+    },
+    {
+      "namespace": "analytics",
+      "images": [
+        "registry.corp/apps/data-worker:7.8.9",
+        "registry.corp/apps/data-worker:7.8.9",
+        "registry.corp/base/ubi9-python-311:approved"
+      ]
+    },
+    {
+      "namespace": "shared-platform",
+      "images": [
+        "registry.corp/tools/log-forwarder:2.0.1",
+        "registry.corp/tools/metrics-sidecar:0.14.0",
+        "quay.io/argoproj/argocli:v3.6.7"
+      ]
+    }
+  ]
+}

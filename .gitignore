@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+dist/
+.tools/
+*.tar.gz
+*.sha256
+.DS_Store

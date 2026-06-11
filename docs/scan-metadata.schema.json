@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/scotiabank/scan-metadata.schema.json",
+  "title": "ScanMetadataRecords",
+  "description": "Compact vulnerability metadata emitted by the existing scanner pipeline for remediation planning.",
+  "type": "array",
+  "items": {
+    "$ref": "#/$defs/scanMetadataRecord"
+  },
+  "$defs": {
+    "sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidencePath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Durable evidence URI/path, such as pvc path, s3://, gs://, https://, or internal report path."
+    },
+    "baseImage": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "image": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256Digest"
+        },
+        "family": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "criticalCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "highCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixableCriticalCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixableHighCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "criticalCount",
+        "highCount",
+        "fixableCriticalCount",
+        "fixableHighCount"
+      ]
+    },
+    "scanMetadataRecord": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "scan-metadata/v1"
+        },
+        "image": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256Digest"
+        },
+        "normalizedReference": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "normalizedImageName": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "canonicalKey": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "scanner": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "scannerVersion": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "scanTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "baseFamily": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "baseImage": {
+          "$ref": "#/$defs/baseImage"
+        },
+        "managedBaseImage": {
+          "type": "boolean"
+        },
+        "targetClasses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "criticalCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "highCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixableCriticalCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixableHighCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "summaryPath": {
+          "$ref": "#/$defs/evidencePath"
+        },
+        "reportPath": {
+          "$ref": "#/$defs/evidencePath"
+        },
+        "rawReportPath": {
+          "$ref": "#/$defs/evidencePath"
+        },
+        "scanRunId": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "digest"
+          ]
+        },
+        {
+          "required": [
+            "image"
+          ]
+        },
+        {
+          "required": [
+            "normalizedReference"
+          ]
+        },
+        {
+          "required": [
+            "normalizedImageName"
+          ]
+        },
+        {
+          "required": [
+            "canonicalKey"
+          ]
+        }
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "criticalCount",
+            "highCount",
+            "fixableCriticalCount",
+            "fixableHighCount"
+          ]
+        },
+        {
+          "required": [
+            "summary"
+          ]
+        }
+      ],
+      "required": [
+        "schemaVersion",
+        "scanner",
+        "scanTimestamp",
+        "managedBaseImage",
+        "targetClasses"
+      ]
+    }
+  }
+}
