@@ -3,6 +3,8 @@
 ## Purpose
 Document the recommended architecture for extending the **existing cluster image inventory + Aqua/Trivy reporting pipeline** into a **registry-first internal base image refresh platform**.
 
+Update: the repo now also includes an upstream-owned variant where per-cluster `images.json` files are deduplicated and scanned inside this control plane before the same family-refresh planner runs. See `docs/end-to-end-argo-control-plane.md` for the least-refactor version of that flow.
+
 ## Why this exists
 The current system already does the detection part:
 - collects running image inventory from clusters

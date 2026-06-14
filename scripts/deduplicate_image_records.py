@@ -392,9 +392,42 @@ def aggregate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any
     return unique_images, ordered_sightings, summary
 
 
+def load_inventory_records(input_path: Path) -> list[dict[str, Any]]:
+    """Load either one inventory JSON file or a directory full of per-cluster `images.json` files.
+
+    Why this exists:
+    - The real environment emits one `images.json` per cluster because there are many clusters.
+    - The rest of the remediation pipeline still wants one normalized list of runtime sightings.
+
+    How it plugs in:
+    - Collection can drop many prod-shaped JSON files into one shared directory.
+    - This loader expands each file using the same runtime inventory contract, then concatenates them
+      before the normal artifact dedupe logic runs.
+    """
+    if input_path.is_dir():
+        json_files = sorted(path for path in input_path.glob("*.json") if path.is_file())
+        if not json_files:
+            raise SystemExit(f"No JSON files found under inventory directory: {input_path}")
+
+        expanded_records: list[dict[str, Any]] = []
+        for json_file in json_files:
+            payload = json.loads(json_file.read_text())
+            records = expand_runtime_inventory_input(payload)
+            if not isinstance(records, list):
+                raise SystemExit(f"Expanded input from {json_file} must be a JSON array of records")
+            expanded_records.extend(records)
+        return expanded_records
+
+    payload = json.loads(input_path.read_text())
+    records = expand_runtime_inventory_input(payload)
+    if not isinstance(records, list):
+        raise SystemExit(f"Expanded input from {input_path} must be a JSON array of records")
+    return records
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="Path to JSON array of collected image records")
+    parser.add_argument("input", help="Path to one inventory JSON file or a directory of per-cluster JSON files")
     parser.add_argument("output_dir", help="Directory for output JSON files")
     args = parser.parse_args()
 
@@ -402,10 +435,7 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    payload = json.loads(input_path.read_text())
-    records = expand_runtime_inventory_input(payload)
-    if not isinstance(records, list):
-        raise SystemExit("Expanded input must be a JSON array of collected image records")
+    records = load_inventory_records(input_path)
 
     unique_images, sightings, summary = aggregate_records(records)
 

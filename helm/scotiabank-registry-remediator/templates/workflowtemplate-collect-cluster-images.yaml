@@ -1,0 +1,59 @@
+# Cluster inventory collection child workflow.
+#
+# Purpose in the system:
+# - Queries every configured prod cluster directly and writes one images.json per cluster.
+# - Preserves the exact runtime inventory shape that dedupe already expects.
+#
+# Why it is needed:
+# - Pretending some other chart will always hand us perfect inventory was lazy fiction.
+# - The remediation pipeline now has a real first mile for multi-cluster prod collection.
+#
+# How it plugs in:
+# - Reads the prod cluster config ConfigMap.
+# - Writes per-cluster images.json files under the shared inventory directory.
+# - inventory-dedup then consumes that directory directly.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: scotiabank-registry-remediator-collect-cluster-images
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: collect-cluster-images
+  volumes:
+    - name: shared-work
+      persistentVolumeClaim:
+        claimName: {{ .Values.argo.pvc.claimName | quote }}
+    - name: collector-script
+      configMap:
+        name: scotiabank-registry-remediator-cluster-collector-script
+        defaultMode: 0755
+    - name: prod-clusters
+      configMap:
+        name: scotiabank-registry-remediator-prod-clusters
+  templates:
+    - name: collect-cluster-images
+      container:
+        image: "{{ .Values.images.workflowUtils.repository }}:{{ .Values.images.workflowUtils.tag }}"
+        command: [sh, -c]
+        args:
+          - |
+            set -euo pipefail
+            mkdir -p {{ .Values.inventory.clusterImageInventoryPath | quote }}
+
+            python3 /opt/remediator/collect_cluster_images.py \
+              {{ .Values.inventory.collection.clusterConfigPath | quote }} \
+              {{ .Values.inventory.clusterImageInventoryPath | quote }} \
+              --kubectl-bin {{ .Values.inventory.collection.kubectlBinary | quote }} \
+              --timeout-seconds {{ .Values.inventory.collection.timeoutSeconds }}
+        volumeMounts:
+          - name: shared-work
+            mountPath: {{ .Values.argo.pvc.mountPath | quote }}
+          - name: collector-script
+            mountPath: /opt/remediator
+          - name: prod-clusters
+            mountPath: /opt/remediator/cluster-config
+      outputs:
+        artifacts:
+          - name: collection-summary-artifact
+            path: "{{ .Values.inventory.clusterImageInventoryPath }}/collection-summary.json"

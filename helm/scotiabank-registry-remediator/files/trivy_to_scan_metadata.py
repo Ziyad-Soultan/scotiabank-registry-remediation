@@ -17,7 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from filter_trivy_actionable import best_fixed_version, classify_target_class
+try:
+    from .filter_trivy_actionable import best_fixed_version, classify_target_class
+except ImportError:  # pragma: no cover - direct script execution
+    from filter_trivy_actionable import best_fixed_version, classify_target_class
 
 HIGH_CRITICAL = {"CRITICAL", "HIGH"}
 

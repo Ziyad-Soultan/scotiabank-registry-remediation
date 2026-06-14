@@ -1,19 +1,19 @@
 # Inventory + dedupe child workflow.
 #
 # Purpose in the system:
-# - Takes the running-image inventory produced by the existing cluster image dump / scan pipeline.
+# - Takes the per-cluster running-image inventory files produced upstream.
 # - Normalizes image refs.
 # - Deduplicates them into unique runtime artifacts.
 # - Preserves every original sighting so we still know which clusters/workloads are impacted.
 #
 # Why it is needed:
-# - The scanner may report the same vulnerable image across many namespaces and workloads.
-# - The remediation pipeline should collapse those into one artifact record before planning refresh work.
+# - The same image shows up across many clusters and workloads.
+# - The scan and remediation pipeline should collapse those into one artifact record before doing expensive work.
 #
 # How it plugs in:
-# - Upstream system writes images.json (or equivalent) to the shared handoff location.
-# - This child turns the runtime list into unique-images + sightings.
-# - The planner child then joins those unique images with existing scan metadata instead of rescanning everything.
+# - Upstream collection drops one prod-shaped `images.json` per cluster into the shared inventory directory.
+# - This child turns that directory into unique-images + sightings.
+# - The scan child then scans the unique set once.
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -38,14 +38,13 @@ spec:
         args:
           - |
             set -euo pipefail
-            # Fail fast if the current scanner pipeline did not write the expected runtime image inventory.
-            test -f {{ .Values.existingScanner.runningImageInventory.inputPath | quote }}
+            if [ -d {{ .Values.inventory.clusterImageInventoryPath | quote }} ]; then
+              find {{ .Values.inventory.clusterImageInventoryPath | quote }} -maxdepth 1 -type f -name {{ .Values.inventory.fileGlob | quote }} | grep -q .
+            else
+              test -f {{ .Values.inventory.clusterImageInventoryPath | quote }}
+            fi
 
-            # Convert many runtime sightings into:
-            # - unique-images.json: one record per unique running artifact
-            # - sightings.json: all original runtime locations preserved
-            # - dedupe-summary.json: lightweight proof that duplicate runtime images were collapsed
-            python /opt/remediator/deduplicate_image_records.py {{ .Values.existingScanner.runningImageInventory.inputPath | quote }} /tmp/dedupe-output
+            python /opt/remediator/deduplicate_image_records.py {{ .Values.inventory.clusterImageInventoryPath | quote }} /tmp/dedupe-output
             mkdir -p {{ .Values.workflowPaths.dedupeOutputDir | quote }}
             cp /tmp/dedupe-output/* {{ .Values.workflowPaths.dedupeOutputDir | quote }}/
         volumeMounts:
@@ -57,7 +56,6 @@ spec:
         parameters:
           - name: unique-images
             valueFrom:
-              # Small JSON used as control-plane input by the planning child.
               path: /tmp/dedupe-output/unique-images.min.json
         artifacts:
           - name: unique-images-artifact

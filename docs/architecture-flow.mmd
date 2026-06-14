@@ -1,0 +1,77 @@
+%%{init: {"theme": "base", "themeVariables": {"background": "#1e1e2e", "primaryColor": "#313244", "primaryBorderColor": "#89b4fa", "primaryTextColor": "#cdd6f4", "secondaryColor": "#181825", "secondaryBorderColor": "#f9e2af", "secondaryTextColor": "#cdd6f4", "tertiaryColor": "#11111b", "tertiaryBorderColor": "#f38ba8", "tertiaryTextColor": "#cdd6f4", "edgeLabelBackground": "#313244", "lineColor": "#cdd6f4", "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif"}}}%%
+flowchart TB
+  subgraph existing["Existing Scanner Inputs"]
+    A["images.json<br/>running images"]
+    E["scan metadata<br/>vuln summary"]
+  end
+
+  subgraph catalog["Platform Policy"]
+    G["base family catalog<br/>approved digests"]
+  end
+
+  subgraph dedupe["Step 1: Inventory Dedupe"]
+    B["dedupe worker"]
+    C["unique-images.json<br/>deduped artifacts"]
+    D["sightings.json<br/>all runtime locations"]
+    DS["dedupe-summary.json<br/>counts"]
+  end
+
+  subgraph planning["Step 2: Refresh Planning"]
+    F["metadata planner"]
+    H["image-evaluations.json<br/>decision trail"]
+    I["family-refresh-plans.json<br/>full plans"]
+    J["family-refresh-summary.json<br/>rollup"]
+    R["fanout.min.json<br/>family list"]
+  end
+
+  subgraph fanout["Step 3: Family Fanout"]
+    K{"Argo withParam"}
+    K1["refresh family<br/>Python worker"]
+    L["dry-run output<br/>validated commands"]
+    X["execute mode<br/>later"]
+    M["OCI handoff<br/>upstream base"]
+  end
+
+  subgraph downstream["Existing Downstream Process"]
+    N["cert injection<br/>hardening"]
+    O["candidate base"]
+    P["post-build scan"]
+    Q["internal publish"]
+  end
+
+  A --> B
+  B --> C
+  B --> D
+  B --> DS
+
+  C --> F
+  D -. "impact evidence" .-> F
+  E --> F
+  G --> F
+
+  F --> H
+  F --> I
+  F --> J
+  F --> R
+
+  R --> K
+  K --> K1
+  K1 --> L
+  K1 -.-> X
+  X -.-> M
+  M --> N
+  N --> O
+  O --> P
+  P --> Q
+
+  classDef input fill:#313244,stroke:#89b4fa,color:#cdd6f4
+  classDef process fill:#1e1e2e,stroke:#a6e3a1,color:#cdd6f4
+  classDef output fill:#181825,stroke:#f9e2af,color:#cdd6f4
+  classDef handoff fill:#181825,stroke:#cba6f7,color:#cdd6f4
+  classDef later fill:#11111b,stroke:#f38ba8,color:#cdd6f4
+
+  class A,E,G input
+  class B,F,K,K1 process
+  class C,D,DS,H,I,J,L,R output
+  class M,N handoff
+  class X,O,P,Q later

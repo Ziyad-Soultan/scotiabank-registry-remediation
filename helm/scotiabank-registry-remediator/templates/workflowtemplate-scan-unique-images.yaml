@@ -1,0 +1,65 @@
+# Unique-image scan child workflow.
+#
+# Purpose in the system:
+# - Scans each deduplicated runtime artifact once with Trivy.
+# - Emits one aggregated compact scan-metadata JSON file for the downstream planner.
+#
+# Why it is needed:
+# - The repo now owns the upstream scan stage instead of assuming another prod chart already wrote metadata.
+# - Scanning after dedupe avoids burning compute on the same image across many workloads.
+#
+# How it plugs in:
+# - inventory-dedup emits unique-images.json.
+# - this child scans those unique images and writes scan-metadata.json.
+# - plan-refresh then consumes that exact metadata contract with minimal downstream refactoring.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: scotiabank-registry-remediator-scan-unique-images
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: scan-unique-images
+  volumes:
+    - name: shared-work
+      persistentVolumeClaim:
+        claimName: {{ .Values.argo.pvc.claimName | quote }}
+    - name: scan-script
+      configMap:
+        name: scotiabank-registry-remediator-scan-script
+        defaultMode: 0755
+    - name: family-catalog
+      configMap:
+        name: {{ .Values.familyCatalog.configMapName | quote }}
+  templates:
+    - name: scan-unique-images
+      container:
+        image: "{{ .Values.images.scannerWorker.repository }}:{{ .Values.images.scannerWorker.tag }}"
+        command: [sh, -c]
+        args:
+          - |
+            set -euo pipefail
+            test -f {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json
+            test -f {{ .Values.familyCatalog.inputPath | quote }}
+
+            mkdir -p $(dirname {{ .Values.scanner.metadataOutputPath | quote }})
+            mkdir -p {{ .Values.scanner.rawReportDir | quote }}
+
+            python3 /opt/remediator/scan_unique_images.py \
+              {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json \
+              {{ .Values.familyCatalog.inputPath | quote }} \
+              {{ .Values.scanner.metadataOutputPath | quote }} \
+              --raw-report-dir {{ .Values.scanner.rawReportDir | quote }} \
+              --mode {{ .Values.scanner.mode | quote }} \
+              --timeout-seconds {{ .Values.scanner.timeoutSeconds }}
+        volumeMounts:
+          - name: shared-work
+            mountPath: {{ .Values.argo.pvc.mountPath | quote }}
+          - name: scan-script
+            mountPath: /opt/remediator
+          - name: family-catalog
+            mountPath: /opt/remediator/catalog
+      outputs:
+        artifacts:
+          - name: scan-metadata-artifact
+            path: {{ .Values.scanner.metadataOutputPath | quote }}

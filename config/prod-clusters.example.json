@@ -1,0 +1,18 @@
+{
+  "clusters": [
+    {
+      "clusterName": "prod-east-1",
+      "kubectlContext": "prod-east-1",
+      "epm_code": "gpedev",
+      "project_name": "shared-platform",
+      "environmentType": "prod"
+    },
+    {
+      "clusterName": "prod-west-1",
+      "kubectlContext": "prod-west-1",
+      "epm_code": "gpedev",
+      "project_name": "shared-platform",
+      "environmentType": "prod"
+    }
+  ]
+}

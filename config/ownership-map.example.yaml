@@ -17,7 +17,6 @@ baseFamilyCatalog:
   ownerModel:
     owningTeam: "REPLACE WITH platform/base-image team"
     ownerContact:
-      slackChannel: "REPLACE WITH Slack or Teams channel"
       email: "REPLACE WITH distro or team email"
 
   publicationDefaults:

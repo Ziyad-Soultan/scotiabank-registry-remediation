@@ -2,17 +2,18 @@
 #
 # Purpose in the system:
 # - Takes one deduplicated family refresh plan.
-# - Grabs the approved upstream base image for that family.
-# - Hands it off to the existing cert injection, hardening, rebuild, verification, and publish process.
+# - Grabs the Red Hat / approved upstream base image for that family.
+# - Hands the result into a placeholder rebuild contract that the real work-repo logic can replace later.
 #
 # Why it is needed:
-# - A Trivy/Aqua event should not trigger one-off ad hoc app image rebuilds.
-# - The controlled action is to refresh the managed internal golden base family once, then let downstream consumers adopt it.
+# - The manual process today is "go to Red Hat, grab newer base, add certs, rebuild, publish".
+# - This workflow makes the upstream acquisition explicit now while keeping the rebuild stage pluggable.
 #
 # How it plugs in:
-# - The metadata planner child emits one JSON family plan per impacted base family.
+# - The metadata planner emits one JSON family plan per impacted base family.
 # - The parent fans this template out once per family plan.
-# - This child only acquires the corporate-approved upstream base. Later processing owns rebuild/publish.
+# - Step 1 acquires the upstream base.
+# - Step 2 creates the placeholder rebuild handoff until the real rebuild worker is copied in.
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -34,6 +35,31 @@ spec:
       inputs:
         parameters:
           - name: family-plan
+      steps:
+        - - name: acquire-upstream-base
+            template: acquire-upstream-base
+            arguments:
+              parameters:
+                - name: family-plan
+                  value: "{{`{{inputs.parameters.family-plan}}`}}"
+        - - name: prepare-rebuild-handoff
+            template: prepare-rebuild-handoff
+            arguments:
+              parameters:
+                - name: family-plan
+                  value: "{{`{{inputs.parameters.family-plan}}`}}"
+                - name: acquisition-output
+                  value: "{{`{{steps.acquire-upstream-base.outputs.parameters.family-refresh-output}}`}}"
+      outputs:
+        parameters:
+          - name: rebuild-handoff-output
+            valueFrom:
+              parameter: "{{`{{steps.prepare-rebuild-handoff.outputs.parameters.rebuild-output}}`}}"
+
+    - name: acquire-upstream-base
+      inputs:
+        parameters:
+          - name: family-plan
       container:
         image: "{{ .Values.images.builder.repository }}:{{ .Values.images.builder.tag }}"
         command: [sh, -c]
@@ -41,19 +67,21 @@ spec:
           - name: REFRESH_MODE
             value: {{ .Values.refreshBaseFamily.mode | quote }}
           - name: ALLOWED_UPSTREAM_SOURCE_TYPES
-            value: {{ join "," .Values.refreshBaseFamily.allowedUpstreamSourceTypes | quote }}
+            value: "{{ join "," .Values.refreshBaseFamily.allowedUpstreamSourceTypes }}"
           - name: ALLOWED_UPSTREAM_REGISTRIES
-            value: {{ join "," .Values.refreshBaseFamily.allowedUpstreamRegistries | quote }}
+            value: "{{ join "," .Values.refreshBaseFamily.allowedUpstreamRegistries }}"
           - name: UPSTREAM_HANDOFF_DIR
-            value: {{ .Values.workflowPaths.upstreamBaseHandoffDir | quote }}
+            value: "{{ .Values.workflowPaths.upstreamBaseHandoffDir }}"
+          - name: ALLOW_UNPINNED_APPROVED_UPSTREAM
+            value: "{{ .Values.refreshBaseFamily.allowUnpinnedApprovedUpstream }}"
         args:
           - |
             set -euo pipefail
 
             ALLOW_UNPINNED_ARG=""
-            {{ if .Values.refreshBaseFamily.allowUnpinnedApprovedUpstream }}
-            ALLOW_UNPINNED_ARG="--allow-unpinned-approved-upstream"
-            {{ end }}
+            if [ "${ALLOW_UNPINNED_APPROVED_UPSTREAM}" = "true" ]; then
+              ALLOW_UNPINNED_ARG="--allow-unpinned-approved-upstream"
+            fi
 
             cat > /tmp/family-plan.json <<'JSON'
             {{`{{inputs.parameters.family-plan}}`}}
@@ -74,5 +102,41 @@ spec:
         parameters:
           - name: family-refresh-output
             valueFrom:
-              # Compact JSON handoff for downstream cert/hardening processing.
               path: /tmp/family-refresh-output.json
+
+    - name: prepare-rebuild-handoff
+      inputs:
+        parameters:
+          - name: family-plan
+          - name: acquisition-output
+      container:
+        image: "{{ .Values.images.rebuildWorker.repository }}:{{ .Values.images.rebuildWorker.tag }}"
+        command: [sh, -c]
+        args:
+          - |
+            set -euo pipefail
+            cat > /tmp/family-plan.json <<'JSON'
+            {{`{{inputs.parameters.family-plan}}`}}
+            JSON
+            cat > /tmp/acquisition-output.json <<'JSON'
+            {{`{{inputs.parameters.acquisition-output}}`}}
+            JSON
+            python3 /opt/remediator/rebuild_family_candidate.py \
+              /tmp/family-plan.json \
+              /tmp/acquisition-output.json \
+              /tmp/rebuild-output.json \
+              --mode "{{ .Values.rebuild.mode }}" \
+              --work-repo-path "{{ .Values.rebuild.workRepoPath }}" \
+              --workflow-id "{{`{{workflow.name}}`}}"
+            mkdir -p {{ .Values.workflowPaths.rebuildOutputDir | quote }}
+            cp /tmp/rebuild-output.json {{ .Values.workflowPaths.rebuildOutputDir | quote }}/$(date +%s)-{{ .Values.rebuild.mode }}-handoff.json
+        volumeMounts:
+          - name: shared-work
+            mountPath: {{ .Values.argo.pvc.mountPath | quote }}
+          - name: refresh-script
+            mountPath: /opt/remediator
+      outputs:
+        parameters:
+          - name: rebuild-output
+            valueFrom:
+              path: /tmp/rebuild-output.json

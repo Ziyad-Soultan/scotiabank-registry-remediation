@@ -1,29 +1,30 @@
 {
   "families": [
     {
-      "name": "ubi9-openjdk-17",
+      "name": "os",
       "selectors": {
         "repositoryPrefixes": [
-          "registry.corp/base/ubi9-openjdk-17"
+          "registry.corp/base/os"
         ],
         "imageRegexes": [
-          ".*openjdk.*",
-          ".*jdk.*"
+          ".*(/|-)os([:-]|$).*",
+          ".*ubi.*",
+          ".*rhel.*"
         ]
       },
       "upstream": {
         "sourceType": "redhat-catalog",
-        "image": "registry.redhat.io/ubi9/openjdk-17-runtime",
-        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "image": "registry.redhat.io/ubi9/ubi",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "track": "approved-stable"
       },
       "customization": {
-        "profile": "ubi9-openjdk-17",
+        "profile": "os",
         "certBundle": "internal-ca.pem",
         "extraPackages": []
       },
       "publication": {
-        "targetRepository": "registry.corp/base/ubi9-openjdk-17",
+        "targetRepository": "registry.corp/base/os",
         "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
         "movingTags": [
           "approved",
@@ -36,29 +37,28 @@
       }
     },
     {
-      "name": "ubi9-python-311",
+      "name": "python",
       "selectors": {
         "repositoryPrefixes": [
-          "registry.corp/base/ubi9-python-311"
+          "registry.corp/base/python"
         ],
         "imageRegexes": [
-          ".*python-?3\\.11.*",
-          ".*python-?311.*"
+          ".*python.*"
         ]
       },
       "upstream": {
         "sourceType": "redhat-catalog",
         "image": "registry.redhat.io/ubi9/python-311",
-        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "track": "approved-stable"
       },
       "customization": {
-        "profile": "ubi9-python-311",
+        "profile": "python",
         "certBundle": "internal-ca.pem",
         "extraPackages": []
       },
       "publication": {
-        "targetRepository": "registry.corp/base/ubi9-python-311",
+        "targetRepository": "registry.corp/base/python",
         "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
         "movingTags": [
           "approved",
@@ -71,10 +71,217 @@
       }
     },
     {
-      "name": "ubi9-nginx",
+      "name": "jdk-8",
       "selectors": {
         "repositoryPrefixes": [
-          "registry.corp/base/ubi9-nginx"
+          "registry.corp/base/jdk8"
+        ],
+        "imageRegexes": [
+          ".*jdk[-._]?8.*",
+          ".*openjdk[-._]?8.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi8/openjdk-8",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "jdk-8",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/jdk8",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "jdk-11",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/jdk11"
+        ],
+        "imageRegexes": [
+          ".*jdk[-._]?11.*",
+          ".*openjdk[-._]?11.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/openjdk-11",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "jdk-11",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/jdk11",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "jdk-25",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/jdk25"
+        ],
+        "imageRegexes": [
+          ".*jdk[-._]?25.*",
+          ".*openjdk[-._]?25.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/openjdk-25",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "jdk-25",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/jdk25",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "jre-8",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/jre8"
+        ],
+        "imageRegexes": [
+          ".*jre[-._]?8.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi8/openjdk-8-runtime",
+        "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "jre-8",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/jre8",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "jre-11",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/jre11"
+        ],
+        "imageRegexes": [
+          ".*jre[-._]?11.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/openjdk-11-runtime",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "jre-11",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/jre11",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "jre-25",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/jre25"
+        ],
+        "imageRegexes": [
+          ".*jre[-._]?25.*"
+        ]
+      },
+      "upstream": {
+        "sourceType": "redhat-catalog",
+        "image": "registry.redhat.io/ubi9/openjdk-25-runtime",
+        "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "track": "approved-stable"
+      },
+      "customization": {
+        "profile": "jre-25",
+        "certBundle": "internal-ca.pem",
+        "extraPackages": []
+      },
+      "publication": {
+        "targetRepository": "registry.corp/base/jre25",
+        "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
+        "movingTags": [
+          "approved",
+          "stable"
+        ]
+      },
+      "policy": {
+        "maxCritical": 0,
+        "maxHigh": 5
+      }
+    },
+    {
+      "name": "nginx",
+      "selectors": {
+        "repositoryPrefixes": [
+          "registry.corp/base/nginx"
         ],
         "imageRegexes": [
           ".*nginx.*"
@@ -83,16 +290,16 @@
       "upstream": {
         "sourceType": "redhat-catalog",
         "image": "registry.redhat.io/ubi9/nginx-124",
-        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
         "track": "approved-stable"
       },
       "customization": {
-        "profile": "ubi9-nginx",
+        "profile": "nginx",
         "certBundle": "internal-ca.pem",
         "extraPackages": []
       },
       "publication": {
-        "targetRepository": "registry.corp/base/ubi9-nginx",
+        "targetRepository": "registry.corp/base/nginx",
         "immutableTagFormat": "{{yyyy}}.{{mm}}.{{dd}}-{{workflow}}",
         "movingTags": [
           "approved",

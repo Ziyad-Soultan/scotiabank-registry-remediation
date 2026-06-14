@@ -2,17 +2,17 @@
 #
 # Purpose in the system:
 # - Coordinates the major phases in order.
-# - Uses the current scanner's running-image inventory and vulnerability metadata as inputs.
-# - Fans out only the expensive registry rebuild work that actually needs to happen.
+# - Starts from per-cluster runtime inventory files, not a pre-merged single file.
+# - Fans out only the expensive family-level refresh work that actually needs to happen.
 #
 # Why it is needed:
-# - The platform should stay event-driven from Trivy/Aqua findings without rebuilding everything all the time.
-# - Argo gives you explicit parent/child boundaries for normalize -> plan -> refresh -> verify.
+# - The repo now owns the upstream scan stage instead of depending on a never-shipped prod chart.
+# - Argo gives explicit parent/child boundaries for dedupe -> scan -> plan -> acquire -> rebuild-handoff.
 #
 # How it plugs in:
-# - The existing image-dump/scanner stack produces images.json + scan-metadata.json.
-# - This orchestrator deduplicates the running image inventory, converts scanner metadata into family refresh plans,
-#   then fans out one child refresh per internal base family that actually needs work.
+# - Upstream collector charts or jobs drop one `images.json` per cluster into the shared inventory directory.
+# - This orchestrator deduplicates the combined runtime inventory, scans the unique artifacts once,
+#   converts findings into family refresh plans, then fans out one child refresh per internal base family.
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -24,10 +24,18 @@ spec:
   templates:
     - name: orchestrate
       steps:
+        - - name: collect-cluster-images
+            templateRef:
+              name: scotiabank-registry-remediator-collect-cluster-images
+              template: collect-cluster-images
         - - name: inventory-dedup
             templateRef:
               name: scotiabank-registry-remediator-inventory-dedup
               template: inventory-dedup
+        - - name: scan-unique-images
+            templateRef:
+              name: scotiabank-registry-remediator-scan-unique-images
+              template: scan-unique-images
         - - name: plan-family-refreshes
             templateRef:
               name: scotiabank-registry-remediator-scan-metadata-planner
@@ -40,11 +48,11 @@ spec:
               parameters:
                 - name: family-plan
                   value: "{{`{{item}}`}}"
-            # Fan out one upstream acquisition per internal base family, not per vulnerable app image.
+            # Fan out one upstream acquisition + rebuild handoff per internal base family, not per vulnerable app image.
             withParam: "{{`{{steps.plan-family-refreshes.outputs.parameters.family-acquisition-fanout}}`}}"
 
-    # The missing production pieces are now explicit instead of hand-wavy:
-    # - optional event dedupe window so repeated Trivy/Aqua events for the same family do not spam rebuilds
-    # - integration from upstream handoff into the existing cert/hardening/rebuild process
-    # - post-build Trivy verification + publication gate against the candidate digest
-    # - state recording so the next event knows the family was already refreshed recently
+    # Still intentionally left for later once the real work-repo pieces are copied in:
+    # - state recording / family cooldown window
+    # - candidate Trivy rescan after rebuild
+    # - publication gate and moving tag update
+    # - notifications / ownership handoff

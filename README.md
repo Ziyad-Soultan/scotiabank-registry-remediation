@@ -1,23 +1,28 @@
 # Scotiabank Registry Remediation Platform Scaffold
 
 ## Goal
-Extend the existing cluster image inventory + Aqua/Trivy reporting stack into a **registry-first internal base image refresh platform**.
+Own the remediation control plane end to end while keeping the repo shape as intact as possible.
 
-This scaffold assumes the current environment already produces:
-- a running image inventory file (for example `images.json` from the cluster image dump agent)
-- scanner metadata and reports from the existing Aqua/Trivy workflow
+The updated design assumes:
+- upstream collection queries all configured prod clusters and writes one prod-shaped `images.json` per cluster into a shared directory
+- this repo deduplicates those per-cluster inventories immediately
+- this repo scans the deduplicated unique image set with Trivy
+- this repo converts scan results into the same compact metadata contract the existing planner already expects
+- this repo plans one refresh per managed internal base family
+- this repo acquires upstream bases from Red Hat / approved sources
+- this repo emits a placeholder rebuild handoff until the real cert/hardening/build logic is copied in from the work repo
 
-Instead of rescanning or archiving every image again, this repo focuses on:
-1. consuming the existing runtime image list,
-2. deduplicating it into unique runtime artifacts,
-3. consuming compact scanner metadata,
-4. deciding which managed internal base families actually need refresh,
-5. rebuilding only those internal base images,
-6. rescanning candidates,
-7. publishing refreshed base images back to the internal registry.
+Instead of forcing a giant refactor, the control plane now looks like:
+1. collect per-cluster `images.json` files,
+2. deduplicate into unique runtime artifacts,
+3. scan unique artifacts once,
+4. emit compact scan metadata,
+5. decide which managed internal base families actually need refresh,
+6. acquire those upstream bases,
+7. hand them to the downstream rebuild/publish worker contract.
 
 ## The system in one sentence
-Use existing scanner findings as the **trigger**, but perform remediation at the **managed internal base-family level**.
+Use deduplicated Trivy findings as the **trigger**, but perform remediation at the **managed internal base-family level**.
 
 That is the whole trick.
 
@@ -249,9 +254,11 @@ This preserves the parent/child Argo model from the current platform instead of 
 - `docs/scan-metadata-input-schema.md`: expected compact metadata shape
 - `docs/scan-metadata.schema.json`: machine-readable scan metadata contract
 - `docs/trivy-reactive-registry-base-refresh.md`: design rationale and end-to-end workflow
+- `docs/end-to-end-argo-control-plane.md`: updated upstream architecture for per-cluster inventory, dedupe, scan, planning, upstream acquisition, and rebuild handoff
 - `docs/architecture-flow.md`: Mermaid architecture diagram
 - `docs/auth-and-secrets.md`: notes on Dex/LDAP, service accounts, and registry/object-store secrets
 - `DEMO.md`: presenter-focused demo script and commands
+- `DEMO_FAQ.md`: demo Q&A, repo map, Helm resource explanation, and naming conventions
 - `TRACKDOWN.md`: checklist for Rancher, Confluence, and Bitbucket discovery
 - `WALKTHROUGH.md`: file-by-file walkthrough of the repo
 

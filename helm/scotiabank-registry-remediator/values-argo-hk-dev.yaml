@@ -1,0 +1,119 @@
+namespace: "argo-hk"
+
+serviceAccount:
+  create: false
+  name: "scotiabank-registry-remediator"
+
+argo:
+  workflowLabels:
+    app.kubernetes.io/part-of: scotiabank-registry-remediator
+    environment: dev
+    platform.bank/environment: dev
+    platform.bank/namespace: argo-hk
+  artifactRepository:
+    bucketOrPath: "REPLACE_WITH_ARGO_ARTIFACT_REPOSITORY"
+  pvc:
+    enabled: true
+    claimName: "scotiabank-registry-remediator-shared"
+    mountPath: /work/shared
+    storageClassName: "REPLACE_WITH_ARGO_HK_STORAGE_CLASS"
+    size: 20Gi
+
+schedule:
+  cron: "0 */6 * * *"
+
+images:
+  workflowUtils:
+    # Must include python3 + kubectl.
+    repository: "REPLACE_WITH_APPROVED_UTILS_IMAGE"
+    tag: "dev"
+  trivy:
+    repository: aquasec/trivy
+    tag: "0.52.2"
+  scannerWorker:
+    # Must include python3 + trivy.
+    repository: "REPLACE_WITH_APPROVED_TRIVY_PYTHON_IMAGE"
+    tag: "dev"
+  builder:
+    # Must include python3 + skopeo.
+    repository: "REPLACE_WITH_APPROVED_SKOPEO_IMAGE"
+    tag: "dev"
+  rebuildWorker:
+    # Placeholder-safe at first; should include python3.
+    repository: "REPLACE_WITH_APPROVED_REBUILD_IMAGE"
+    tag: "dev"
+
+inventory:
+  clusterImageInventoryPath: "/work/shared/cluster-images"
+  fileGlob: "*.images.json"
+  expectsPerClusterFiles: true
+  collection:
+    clusterConfigPath: "/opt/remediator/cluster-config/prod-clusters.example.json"
+    kubectlBinary: "kubectl"
+    timeoutSeconds: 180
+
+scanner:
+  metadataOutputPath: "/work/shared/scan-metadata.json"
+  rawReportDir: "/work/shared/trivy-raw"
+  mode: dry-run
+  timeoutSeconds: 1800
+
+familyCatalog:
+  inputPath: "/opt/remediator/catalog/base-family-catalog.example.json"
+  configMapName: scotiabank-registry-remediator-family-catalog
+
+workflowPaths:
+  dedupeOutputDir: "/work/shared/dedupe-output"
+  refreshPlanOutputDir: "/work/shared/refresh-plan"
+  upstreamBaseHandoffDir: "/work/shared/upstream-bases"
+  rebuildOutputDir: "/work/shared/rebuild-output"
+
+severityThresholds:
+  actionable:
+    - CRITICAL
+    - HIGH
+
+concurrency:
+  inventory: 2
+  planning: 2
+  familyRefreshFanout: 2
+  verificationFanout: 2
+
+metadataMode:
+  preferMetadataOnly: true
+  keepFullImageArchives: false
+  requireManagedBaseSignal: true
+
+baseClassesEligibleForRefresh:
+  - rhel-base
+  - os-package
+  - nginx
+  - java-runtime
+  - jdk-runtime
+  - python-runtime
+
+publication:
+  candidateRegistry: "REPLACE_WITH_DEV_CANDIDATE_REGISTRY"
+  publishMovingTags:
+    - approved
+    - stable
+  immutableTagFormat: "YYYY.MM.DD-workflow"
+  signImages: false
+
+verification:
+  maxCritical: 0
+  maxHigh: 5
+  requireRescan: true
+
+refreshBaseFamily:
+  mode: dry-run
+  allowedUpstreamSourceTypes:
+    - redhat-catalog
+    - internal-approved-registry
+  allowedUpstreamRegistries:
+    - registry.redhat.io
+  allowUnpinnedApprovedUpstream: false
+
+rebuild:
+  mode: placeholder
+  workRepoPath: "/work/rebuild-placeholder"

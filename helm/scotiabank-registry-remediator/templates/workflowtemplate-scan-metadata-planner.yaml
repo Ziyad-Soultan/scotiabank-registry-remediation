@@ -1,18 +1,18 @@
 # Scan-metadata planning child workflow.
 #
 # Purpose in the system:
-# - Reads compact vulnerability metadata produced by the existing Aqua/Trivy workflow.
+# - Reads compact vulnerability metadata produced by the scan stage.
 # - Joins that metadata with deduplicated runtime images.
 # - Produces deduplicated internal base-family refresh plans.
 #
 # Why it is needed:
-# - You asked to work around the current scanning stack instead of replacing it.
-# - This step lets remediation stay event-driven from scanner findings without storing or reprocessing full image archives.
+# - The repo keeps the existing compact metadata contract even though it now owns the scan stage.
+# - This preserves the current planner logic with minimal refactoring.
 #
 # How it plugs in:
 # - inventory-dedup produces unique-images.json.
-# - this child reads unique-images.json + scan-metadata.json + base-family-catalog.json.
-# - its output is the family-level fan-out input for the upstream acquisition child workflow.
+# - scan-unique-images produces scan-metadata.json.
+# - this child reads both plus the base-family catalog and emits family-level fan-out input.
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -41,17 +41,12 @@ spec:
           - |
             set -euo pipefail
             test -f {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json
-            test -f {{ .Values.existingScanner.scanMetadata.inputPath | quote }}
+            test -f {{ .Values.scanner.metadataOutputPath | quote }}
             test -f {{ .Values.familyCatalog.inputPath | quote }}
 
-            # Build a refresh plan strictly from:
-            # - running image inventory
-            # - existing scanner metadata
-            # - internal base-family catalog
-            # This avoids the storage/computation hit of archiving or rescanning every source image.
             python /opt/remediator/plan_base_refresh_from_scan_metadata.py \
               {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json \
-              {{ .Values.existingScanner.scanMetadata.inputPath | quote }} \
+              {{ .Values.scanner.metadataOutputPath | quote }} \
               {{ .Values.familyCatalog.inputPath | quote }} \
               /tmp/refresh-plan
             mkdir -p {{ .Values.workflowPaths.refreshPlanOutputDir | quote }}
@@ -67,7 +62,6 @@ spec:
         parameters:
           - name: family-acquisition-fanout
             valueFrom:
-              # Minimal family/upstream list used by the parent workflow to fan out acquisition children.
               path: /tmp/refresh-plan/family-acquisition-fanout.min.json
         artifacts:
           - name: image-evaluations-artifact
