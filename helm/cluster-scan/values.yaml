@@ -16,7 +16,7 @@ serviceAccount:
 
 argo:
   workflowLabels:
-    app.kubernetes.io/part-of: scotiabank-registry-remediator
+    app.kubernetes.io/part-of: cluster-scan
   artifactRepository:
     bucketOrPath: "REPLACE WITH artifact repository bucket/path"
   pvc:
@@ -27,8 +27,8 @@ argo:
     size: 20Gi
 
 schedule:
-  # Optional CronWorkflow trigger for repeated runs.
-  cron: "REPLACE WITH cron schedule, e.g. 0 * * * *"
+  # Optional CronWorkflow trigger for the nightly runtime reporting flow.
+  cron: "REPLACE WITH cron schedule, e.g. 0 2 * * *"
 
 images:
   workflowUtils:
@@ -74,10 +74,12 @@ scanner:
 
 familyCatalog:
   inputPath: "/opt/remediator/catalog/base-family-catalog.example.json"
-  configMapName: scotiabank-registry-remediator-family-catalog
+  configMapName: cluster-scan-family-catalog
 
 workflowPaths:
   dedupeOutputDir: "/work/shared/dedupe-output"
+  runtimeReportingOutputDir: "/work/shared/runtime-reporting"
+  runtimeDashboardHtmlPath: "/work/shared/runtime-reporting/index.html"
   refreshPlanOutputDir: "/work/shared/refresh-plan"
   upstreamBaseHandoffDir: "/work/shared/upstream-bases"
   rebuildOutputDir: "/work/shared/rebuild-output"

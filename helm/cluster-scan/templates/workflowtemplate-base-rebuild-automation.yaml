@@ -1,0 +1,39 @@
+# Top-level base-image rebuild automation workflow.
+#
+# Purpose in the system:
+# - Provides a dedicated entrypoint for rebuild automation driven by the base-image repo.
+# - Keeps rebuild/acquisition concerns fully separate from nightly runtime vulnerability reporting.
+#
+# Why it is needed:
+# - The base-image repo already owns its own scanning and smoke tests.
+# - This repo only needs to automate approved upstream acquisition plus rebuild handoff for that flow.
+#
+# How it plugs in:
+# - An upstream job or repo automation submits one family-plan JSON object.
+# - This workflow delegates that plan to the refresh-base-family template.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: cluster-scan-base-rebuild-automation
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: run-base-rebuild
+  arguments:
+    parameters:
+      - name: family-plan
+        value: '{}'
+  templates:
+    - name: run-base-rebuild
+      inputs:
+        parameters:
+          - name: family-plan
+      steps:
+        - - name: refresh-base-family
+            templateRef:
+              name: cluster-scan-refresh-base-family
+              template: refresh-base-family
+            arguments:
+              parameters:
+                - name: family-plan
+                  value: "{{`{{inputs.parameters.family-plan}}`}}"

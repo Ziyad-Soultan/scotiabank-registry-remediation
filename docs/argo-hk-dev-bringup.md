@@ -10,33 +10,33 @@ If you thought that meant "install chart, win prize, go home," unfortunately no.
 The Helm/Argo scaffold already defines the core workflow chain.
 
 Main chart path:
-- `helm/scotiabank-registry-remediator/`
+- `helm/cluster-scan/`
 
 Exact workflow/control-plane files:
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-orchestrator.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-collect-cluster-images.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-inventory-dedup.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-unique-images.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-metadata-planner.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-remediate-image.yaml`
-- `helm/scotiabank-registry-remediator/templates/configmap-metadata.yaml`
-- `helm/scotiabank-registry-remediator/templates/cronworkflow-scheduled.yaml`
-- `helm/scotiabank-registry-remediator/templates/pvc-shared-data.yaml`
-- `helm/scotiabank-registry-remediator/values.yaml`
-- `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-orchestrator.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-collect-cluster-images.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-inventory-dedup.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-unique-images.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-metadata-planner.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-remediate-image.yaml`
+- `helm/cluster-scan/templates/configmap-metadata.yaml`
+- `helm/cluster-scan/templates/cronworkflow-scheduled.yaml`
+- `helm/cluster-scan/templates/pvc-shared-data.yaml`
+- `helm/cluster-scan/values.yaml`
+- `helm/cluster-scan/values-argo-hk-dev.yaml`
 
 Mounted helper/config payloads:
-- `helm/scotiabank-registry-remediator/files/collect_cluster_images.py`
-- `helm/scotiabank-registry-remediator/files/deduplicate_image_records.py`
-- `helm/scotiabank-registry-remediator/files/scan_unique_images.py`
-- `helm/scotiabank-registry-remediator/files/trivy_to_scan_metadata.py`
-- `helm/scotiabank-registry-remediator/files/plan_base_refresh_from_scan_metadata.py`
-- `helm/scotiabank-registry-remediator/files/refresh_base_family.py`
-- `helm/scotiabank-registry-remediator/files/rebuild_family_candidate.py`
-- `helm/scotiabank-registry-remediator/files/prod-clusters.example.json`
-- `helm/scotiabank-registry-remediator/files/base-family-catalog.example.json`
-- `helm/scotiabank-registry-remediator/files/source-locations.example.yaml`
-- `helm/scotiabank-registry-remediator/files/ownership-map.example.yaml`
+- `helm/cluster-scan/files/collect_cluster_images.py`
+- `helm/cluster-scan/files/deduplicate_image_records.py`
+- `helm/cluster-scan/files/scan_unique_images.py`
+- `helm/cluster-scan/files/trivy_to_scan_metadata.py`
+- `helm/cluster-scan/files/plan_base_refresh_from_scan_metadata.py`
+- `helm/cluster-scan/files/refresh_base_family.py`
+- `helm/cluster-scan/files/rebuild_family_candidate.py`
+- `helm/cluster-scan/files/prod-clusters.example.json`
+- `helm/cluster-scan/files/base-family-catalog.example.json`
+- `helm/cluster-scan/files/source-locations.example.yaml`
+- `helm/cluster-scan/files/ownership-map.example.yaml`
 
 ## 2. What the workflow actually does
 
@@ -88,19 +88,19 @@ Rule of thumb:
 ### Values files
 
 Base chart defaults:
-- `helm/scotiabank-registry-remediator/values.yaml`
+- `helm/cluster-scan/values.yaml`
 
 Namespace/environment-specific override:
-- `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
+- `helm/cluster-scan/values-argo-hk-dev.yaml`
 
 Do not cram all dev config into the base file unless you enjoy making future you hate present you.
 
 ### Mounted config/script files
 
 Used by ConfigMaps and runtime helpers:
-- `helm/scotiabank-registry-remediator/files/*.py`
-- `helm/scotiabank-registry-remediator/files/*.json`
-- `helm/scotiabank-registry-remediator/files/*.yaml`
+- `helm/cluster-scan/files/*.py`
+- `helm/cluster-scan/files/*.json`
+- `helm/cluster-scan/files/*.yaml`
 
 ## 4. What is missing right now
 
@@ -180,7 +180,7 @@ That reduces the blast radius while still proving orchestration.
 ## 7. The dev values file to use
 
 The repo includes:
-- `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
+- `helm/cluster-scan/values-argo-hk-dev.yaml`
 
 That file should hold all namespace-specific settings for `argo-hk`, including:
 - namespace
@@ -201,7 +201,7 @@ Used by:
 
 Files to update:
 - `config/prod-clusters.example.json`
-- `helm/scotiabank-registry-remediator/files/prod-clusters.example.json`
+- `helm/cluster-scan/files/prod-clusters.example.json`
 
 For first bring-up, do not model 50 clusters because you hate yourself.
 Use the single real dev target you can access.
@@ -247,7 +247,7 @@ Used by:
 
 Files to update:
 - `config/base-family-catalog.example.json`
-- `helm/scotiabank-registry-remediator/files/base-family-catalog.example.json`
+- `helm/cluster-scan/files/base-family-catalog.example.json`
 
 For first validation, keep the catalog tiny:
 - 1 UBI/RHEL family
@@ -266,13 +266,13 @@ Do not pretend example digests are fine. They are not. They are decorative lies 
 
 These do not currently exist in the chart and should be added if the namespace does not already provide them:
 
-- `helm/scotiabank-registry-remediator/templates/serviceaccount.yaml`
-- `helm/scotiabank-registry-remediator/templates/role.yaml`
-- `helm/scotiabank-registry-remediator/templates/rolebinding.yaml`
+- `helm/cluster-scan/templates/serviceaccount.yaml`
+- `helm/cluster-scan/templates/role.yaml`
+- `helm/cluster-scan/templates/rolebinding.yaml`
 
 Maybe also:
-- `helm/scotiabank-registry-remediator/templates/clusterrole.yaml`
-- `helm/scotiabank-registry-remediator/templates/clusterrolebinding.yaml`
+- `helm/cluster-scan/templates/clusterrole.yaml`
+- `helm/cluster-scan/templates/clusterrolebinding.yaml`
 
 Likely permissions to think through:
 - get/list/watch `configmaps`
@@ -288,7 +288,7 @@ That is the kind of detail that blows up a demo if you ignore it.
 ### Step 1: Update the dev values file
 
 File:
-- `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
+- `helm/cluster-scan/values-argo-hk-dev.yaml`
 
 Fill in:
 - real storage class
@@ -301,7 +301,7 @@ Fill in:
 
 Files:
 - `config/prod-clusters.example.json`
-- `helm/scotiabank-registry-remediator/files/prod-clusters.example.json`
+- `helm/cluster-scan/files/prod-clusters.example.json`
 
 Set the actual dev cluster target and auth model.
 
@@ -309,7 +309,7 @@ Set the actual dev cluster target and auth model.
 
 Files:
 - `config/base-family-catalog.example.json`
-- `helm/scotiabank-registry-remediator/files/base-family-catalog.example.json`
+- `helm/cluster-scan/files/base-family-catalog.example.json`
 
 Start with 1-2 families only.
 
@@ -326,7 +326,7 @@ Files to create:
 From repo root:
 
 ```bash
-helm template scotia-remediator-dev helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm template scotia-remediator-dev helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 You want to confirm:
@@ -339,13 +339,13 @@ You want to confirm:
 ### Step 6: Lint the chart
 
 ```bash
-helm lint helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm lint helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 ### Step 7: Install into `argo-hk`
 
 ```bash
-helm upgrade --install scotia-remediator-dev helm/scotiabank-registry-remediator -n argo-hk -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm upgrade --install scotia-remediator-dev helm/cluster-scan -n argo-hk -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 ### Step 8: Verify resources
@@ -366,7 +366,7 @@ Do not start with cron like a maniac.
 Run manually first.
 
 ```bash
-argo submit --from workflowtemplate/scotiabank-registry-remediator-orchestrator -n argo-hk
+argo submit --from workflowtemplate/cluster-scan-orchestrator -n argo-hk
 ```
 
 If no `argo` CLI is available, use the Argo UI.
@@ -426,7 +426,7 @@ That PVC is your evidence locker. Use it.
 ### Step 13: Only enable CronWorkflow after manual success
 
 The file is:
-- `helm/scotiabank-registry-remediator/templates/cronworkflow-scheduled.yaml`
+- `helm/cluster-scan/templates/cronworkflow-scheduled.yaml`
 
 The schedule is controlled by:
 - `schedule.cron` in `values-argo-hk-dev.yaml`
@@ -463,19 +463,19 @@ That is sane.
 Render:
 
 ```bash
-helm template scotia-remediator-dev helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm template scotia-remediator-dev helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 Lint:
 
 ```bash
-helm lint helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm lint helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 Install:
 
 ```bash
-helm upgrade --install scotia-remediator-dev helm/scotiabank-registry-remediator -n argo-hk -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm upgrade --install scotia-remediator-dev helm/cluster-scan -n argo-hk -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 Verify resources:
@@ -487,7 +487,7 @@ kubectl get workflowtemplates,cronworkflows,configmaps,pvc,sa -n argo-hk
 Submit workflow:
 
 ```bash
-argo submit --from workflowtemplate/scotiabank-registry-remediator-orchestrator -n argo-hk
+argo submit --from workflowtemplate/cluster-scan-orchestrator -n argo-hk
 ```
 
 Watch workflow:

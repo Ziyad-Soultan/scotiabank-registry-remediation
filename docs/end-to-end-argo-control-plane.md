@@ -180,11 +180,11 @@ But it should not be the main execution engine for the scan/rebuild/publish path
 - `scripts/plan_base_refresh_from_scan_metadata.py`
 - `scripts/refresh_base_family.py`
 - `scripts/rebuild_family_candidate.py`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-inventory-dedup.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-unique-images.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-metadata-planner.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-remediate-image.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-orchestrator.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-inventory-dedup.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-unique-images.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-metadata-planner.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-remediate-image.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-orchestrator.yaml`
 
 ## Known intentional gaps
 Still placeholder by design:

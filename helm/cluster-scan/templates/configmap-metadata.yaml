@@ -17,7 +17,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-ownership
+  name: cluster-scan-ownership
   namespace: {{ .Values.namespace | quote }}
 data:
   ownership-map.example.yaml: |
@@ -26,7 +26,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-sources
+  name: cluster-scan-sources
   namespace: {{ .Values.namespace | quote }}
 data:
   source-locations.example.yaml: |
@@ -35,7 +35,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-prod-clusters
+  name: cluster-scan-prod-clusters
   namespace: {{ .Values.namespace | quote }}
 data:
   prod-clusters.example.json: |
@@ -44,7 +44,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-dedupe-script
+  name: cluster-scan-dedupe-script
   namespace: {{ .Values.namespace | quote }}
 data:
   deduplicate_image_records.py: |
@@ -53,7 +53,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-cluster-collector-script
+  name: cluster-scan-cluster-collector-script
   namespace: {{ .Values.namespace | quote }}
 data:
   collect_cluster_images.py: |
@@ -62,7 +62,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-scan-script
+  name: cluster-scan-scan-script
   namespace: {{ .Values.namespace | quote }}
 data:
   scan_unique_images.py: |
@@ -75,7 +75,18 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-metadata-planner-script
+  name: cluster-scan-runtime-reporting-script
+  namespace: {{ .Values.namespace | quote }}
+data:
+  build_runtime_vulnerability_reports.py: |
+{{ .Files.Get "files/build_runtime_vulnerability_reports.py" | nindent 4 }}
+  render_runtime_dashboard.py: |
+{{ .Files.Get "files/render_runtime_dashboard.py" | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-scan-metadata-planner-script
   namespace: {{ .Values.namespace | quote }}
 data:
   plan_base_refresh_from_scan_metadata.py: |
@@ -84,7 +95,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scotiabank-registry-remediator-refresh-base-family-script
+  name: cluster-scan-refresh-base-family-script
   namespace: {{ .Values.namespace | quote }}
 data:
   refresh_base_family.py: |

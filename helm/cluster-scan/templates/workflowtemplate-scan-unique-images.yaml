@@ -15,7 +15,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: scotiabank-registry-remediator-scan-unique-images
+  name: cluster-scan-scan-unique-images
   namespace: {{ .Values.namespace | quote }}
 spec:
   serviceAccountName: {{ .Values.serviceAccount.name | quote }}
@@ -26,7 +26,7 @@ spec:
         claimName: {{ .Values.argo.pvc.claimName | quote }}
     - name: scan-script
       configMap:
-        name: scotiabank-registry-remediator-scan-script
+        name: cluster-scan-scan-script
         defaultMode: 0755
     - name: family-catalog
       configMap:

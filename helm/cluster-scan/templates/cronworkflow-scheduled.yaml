@@ -13,7 +13,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
-  name: scotiabank-registry-remediator-scheduled
+  name: cluster-scan-scheduled
   namespace: {{ .Values.namespace | quote }}
 spec:
   schedule: {{ .Values.schedule.cron | quote }}
@@ -22,4 +22,4 @@ spec:
   workflowSpec:
     serviceAccountName: {{ .Values.serviceAccount.name | quote }}
     workflowTemplateRef:
-      name: scotiabank-registry-remediator-orchestrator
+      name: cluster-scan-orchestrator

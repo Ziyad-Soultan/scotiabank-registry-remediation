@@ -28,6 +28,8 @@ from typing import Any
 
 
 SAFE_NAME_RE = re.compile(r"[^a-zA-Z0-9._-]+")
+REPLICASET_POD_HASH_RE = re.compile(r"-[a-f0-9]{9,10}$")
+JOB_POD_SUFFIX_RE = re.compile(r"-[a-z0-9]{5}$")
 
 
 def _clean(value: Any) -> Any:
@@ -51,20 +53,92 @@ def _unique(values: list[str]) -> list[str]:
     return out
 
 
+def _dedupe_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for record in records:
+        cleaned = {k: v for k, v in record.items() if v not in (None, "", [], {})}
+        key = json.dumps(cleaned, sort_keys=True)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+    return out
+
+
 def safe_cluster_filename(cluster_name: str) -> str:
     cleaned = SAFE_NAME_RE.sub("-", cluster_name.strip()).strip("-._")
     return cleaned or "cluster"
 
 
-def iter_pod_images(pod: dict[str, Any]) -> list[str]:
+def derive_workload(metadata: dict[str, Any]) -> tuple[str | None, str | None]:
+    owner_refs = metadata.get("ownerReferences") or []
+    for owner in owner_refs:
+        if not owner or not owner.get("controller"):
+            continue
+        kind = _clean(owner.get("kind"))
+        name = _clean(owner.get("name"))
+        if kind == "ReplicaSet" and name:
+            deployment_name = REPLICASET_POD_HASH_RE.sub("", name)
+            if deployment_name != name and deployment_name:
+                return "Deployment", deployment_name
+        if kind == "Job" and name:
+            cronjob_name = JOB_POD_SUFFIX_RE.sub("", name)
+            if cronjob_name != name and cronjob_name:
+                return "CronJob", cronjob_name
+        return kind, name
+    return None, None
+
+
+def derive_app_metadata(metadata: dict[str, Any], workload_name: str | None) -> dict[str, Any]:
+    labels = metadata.get("labels") or {}
+    app_name = _clean(labels.get("app.kubernetes.io/name")) or _clean(labels.get("app")) or workload_name
+    app_instance = _clean(labels.get("app.kubernetes.io/instance"))
+    component = _clean(labels.get("app.kubernetes.io/component")) or _clean(labels.get("component"))
+    part_of = _clean(labels.get("app.kubernetes.io/part-of"))
+    managed_by = _clean(labels.get("app.kubernetes.io/managed-by"))
+    return {
+        "appName": app_name,
+        "appInstance": app_instance,
+        "component": component,
+        "partOf": part_of,
+        "managedBy": managed_by,
+    }
+
+
+def iter_pod_image_records(pod: dict[str, Any]) -> list[dict[str, Any]]:
+    metadata = pod.get("metadata") or {}
     spec = pod.get("spec") or {}
-    images: list[str] = []
-    for field in ("containers", "initContainers", "ephemeralContainers"):
+    pod_name = _clean(metadata.get("name"))
+    workload_kind, workload_name = derive_workload(metadata)
+    app_metadata = derive_app_metadata(metadata, workload_name)
+    records: list[dict[str, Any]] = []
+    for field, container_type in (
+        ("containers", "container"),
+        ("initContainers", "initContainer"),
+        ("ephemeralContainers", "ephemeralContainer"),
+    ):
         for container in spec.get(field) or []:
-            image = _clean((container or {}).get("image"))
-            if image:
-                images.append(image)
-    return images
+            container = container or {}
+            image = _clean(container.get("image"))
+            if not image:
+                continue
+            records.append(
+                {
+                    "image": image,
+                    "containerName": _clean(container.get("name")),
+                    "containerType": container_type,
+                    "podName": pod_name,
+                    "workloadKind": workload_kind,
+                    "workloadName": workload_name,
+                    "appName": app_metadata.get("appName"),
+                    "appInstance": app_metadata.get("appInstance"),
+                    "component": app_metadata.get("component"),
+                    "partOf": app_metadata.get("partOf"),
+                    "managedBy": app_metadata.get("managedBy"),
+                }
+            )
+    return records
 
 
 def build_inventory_payload(
@@ -75,17 +149,17 @@ def build_inventory_payload(
     project_name: str | None = None,
     environment_type: str = "prod",
 ) -> dict[str, Any]:
-    namespace_images: dict[str, list[str]] = defaultdict(list)
+    namespace_images: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for pod in pod_list.get("items") or []:
         namespace = _clean(((pod.get("metadata") or {}).get("namespace")))
         if not namespace:
             continue
-        namespace_images[namespace].extend(iter_pod_images(pod))
+        namespace_images[namespace].extend(iter_pod_image_records(pod))
 
     namespaces = [
-        {"namespace": namespace, "images": _unique(images)}
+        {"namespace": namespace, "images": _dedupe_records(images)}
         for namespace, images in sorted(namespace_images.items())
-        if _unique(images)
+        if _dedupe_records(images)
     ]
 
     return {

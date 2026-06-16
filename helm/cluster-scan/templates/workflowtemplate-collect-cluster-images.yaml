@@ -15,7 +15,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: scotiabank-registry-remediator-collect-cluster-images
+  name: cluster-scan-collect-cluster-images
   namespace: {{ .Values.namespace | quote }}
 spec:
   serviceAccountName: {{ .Values.serviceAccount.name | quote }}
@@ -26,11 +26,11 @@ spec:
         claimName: {{ .Values.argo.pvc.claimName | quote }}
     - name: collector-script
       configMap:
-        name: scotiabank-registry-remediator-cluster-collector-script
+        name: cluster-scan-cluster-collector-script
         defaultMode: 0755
     - name: prod-clusters
       configMap:
-        name: scotiabank-registry-remediator-prod-clusters
+        name: cluster-scan-prod-clusters
   templates:
     - name: collect-cluster-images
       container:

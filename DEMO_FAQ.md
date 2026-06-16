@@ -234,7 +234,7 @@ documented.
 Example source location metadata for `images.json`, scan metadata, and scanner
 evidence paths.
 
-### `helm/scotiabank-registry-remediator/`
+### `helm/cluster-scan/`
 
 The deployable Helm chart. This turns the scripts and config into Argo
 WorkflowTemplates and Kubernetes ConfigMaps.
@@ -272,25 +272,25 @@ The Helm chart installs several resources.
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/configmap-metadata.yaml`
+- `helm/cluster-scan/templates/configmap-metadata.yaml`
 
 They package scripts and example config into the cluster so workflow pods can
 mount them.
 
 Important ConfigMaps:
 
-- `scotiabank-registry-remediator-dedupe-script`
-- `scotiabank-registry-remediator-metadata-planner-script`
-- `scotiabank-registry-remediator-refresh-base-family-script`
-- `scotiabank-registry-remediator-family-catalog`
-- `scotiabank-registry-remediator-ownership`
-- `scotiabank-registry-remediator-sources`
+- `cluster-scan-dedupe-script`
+- `cluster-scan-metadata-planner-script`
+- `cluster-scan-refresh-base-family-script`
+- `cluster-scan-family-catalog`
+- `cluster-scan-ownership`
+- `cluster-scan-sources`
 
 ### Shared PVC
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/pvc-shared-data.yaml`
+- `helm/cluster-scan/templates/pvc-shared-data.yaml`
 
 Purpose:
 
@@ -309,7 +309,7 @@ Default mount path:
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-inventory-dedup.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-inventory-dedup.yaml`
 
 Reads:
 
@@ -325,7 +325,7 @@ Writes:
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-metadata-planner.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-metadata-planner.yaml`
 
 Reads:
 
@@ -344,12 +344,12 @@ Writes:
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-remediate-image.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-remediate-image.yaml`
 
 Despite the filename saying `remediate-image`, the actual Kubernetes object is:
 
 ```text
-scotiabank-registry-remediator-refresh-base-family
+cluster-scan-refresh-base-family
 ```
 
 It takes one family plan from the planner fanout and runs
@@ -368,7 +368,7 @@ an OCI handoff directory.
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-orchestrator.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-orchestrator.yaml`
 
 Runs the child workflows in this order:
 
@@ -386,7 +386,7 @@ family-acquisition-fanout.min.json
 
 Defined in:
 
-- `helm/scotiabank-registry-remediator/templates/cronworkflow-scheduled.yaml`
+- `helm/cluster-scan/templates/cronworkflow-scheduled.yaml`
 
 Purpose:
 
@@ -400,15 +400,15 @@ schedule.cron
 
 ## Naming Conventions
 
-### `scotiabank-registry-remediator-*`
+### `cluster-scan-*`
 
 Prefix for Kubernetes resources owned by this chart.
 
 Examples:
 
-- `scotiabank-registry-remediator-orchestrator`
-- `scotiabank-registry-remediator-inventory-dedup`
-- `scotiabank-registry-remediator-scan-metadata-planner`
+- `cluster-scan-orchestrator`
+- `cluster-scan-inventory-dedup`
+- `cluster-scan-scan-metadata-planner`
 
 ### `base-family`
 

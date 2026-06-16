@@ -87,14 +87,14 @@ Expected behavior:
 If Helm is available:
 
 ```bash
-helm lint helm/scotiabank-registry-remediator \
+helm lint helm/cluster-scan \
   --set namespace=registry-remediation \
   --set serviceAccount.name=registry-remediator \
   --set argo.pvc.claimName=registry-remediator-shared-work \
   --set images.builder.repository=registry.corp/platform/skopeo-worker \
   --set images.builder.tag=approved
 
-helm template smoke helm/scotiabank-registry-remediator \
+helm template smoke helm/cluster-scan \
   --show-only templates/workflowtemplate-remediate-image.yaml \
   --set namespace=registry-remediation \
   --set serviceAccount.name=registry-remediator \

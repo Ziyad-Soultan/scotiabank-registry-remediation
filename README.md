@@ -1,354 +1,289 @@
-# Scotiabank Registry Remediation Platform Scaffold
+# cluster-scan Runtime Vulnerability Platform
 
-## Goal
-Own the remediation control plane end to end while keeping the repo shape as intact as possible.
+## What this repo does now
+The repo is split into **two separate flows** because the scope changed again, because of course it did.
 
-The updated design assumes:
-- upstream collection queries all configured prod clusters and writes one prod-shaped `images.json` per cluster into a shared directory
-- this repo deduplicates those per-cluster inventories immediately
-- this repo scans the deduplicated unique image set with Trivy
-- this repo converts scan results into the same compact metadata contract the existing planner already expects
-- this repo plans one refresh per managed internal base family
-- this repo acquires upstream bases from Red Hat / approved sources
-- this repo emits a placeholder rebuild handoff until the real cert/hardening/build logic is copied in from the work repo
+### 1. Base-image rebuild automation
+This flow is for the **base image repo** path.
 
-Instead of forcing a giant refactor, the control plane now looks like:
-1. collect per-cluster `images.json` files,
-2. deduplicate into unique runtime artifacts,
-3. scan unique artifacts once,
-4. emit compact scan metadata,
-5. decide which managed internal base families actually need refresh,
-6. acquire those upstream bases,
-7. hand them to the downstream rebuild/publish worker contract.
+That repo already has:
+- its own scanning
+- its own smoke tests
 
-## The system in one sentence
-Use deduplicated Trivy findings as the **trigger**, but perform remediation at the **managed internal base-family level**.
+So this repo should **not** pretend to own that detection logic anymore.
+It only owns the automation that starts once a base-family rebuild is already justified.
 
-That is the whole trick.
+**This flow now does:**
+1. accept one approved `family-plan` JSON payload
+2. validate the upstream source and digest policy
+3. acquire/copy the approved upstream base image
+4. hand the result to the rebuild/cert/hardening contract
 
-## Why this redesign exists
-The current scan/reporting stack already does the expensive detection work:
-- inventory collection
-- scan execution
-- result parsing
-- reporting/dashboard output
+**Primary Argo entrypoint:**
+- `cluster-scan-base-rebuild-automation`
 
-So the remediation platform should not behave like a needy middle manager and duplicate all of that.
+**Core worker/template:**
+- `cluster-scan-refresh-base-family`
 
-It should reuse:
-- the list of running images
-- compact vulnerability metadata
-- existing evidence/report links
+### 2. Nightly runtime vulnerability reporting
+This flow is for **everything currently running on clusters every night**.
 
-Then it should do the missing operational action:
-- resolve impacted images back to managed internal base families,
-- rebuild those families from approved upstream sources,
-- apply org customization,
-- publish refreshed candidates internally.
+It is completely separate from rebuild automation.
+It does **not** trigger family rebuilds.
+It ends in reporting artifacts for dashboards and vulnerability review.
 
-## What changed in this repo
-This scaffold is now built around the **existing scanner outputs** instead of around a brand-new full-image scanning pipeline.
+**This flow now does:**
+1. collect runtime inventory from clusters
+2. dedupe repeated runtime image sightings
+3. scan each unique runtime image with Trivy once
+4. merge scan results back with sightings
+5. emit cluster/workload/app/dashboard JSON outputs and a dark-mode HTML dashboard
 
-### The major architectural change
-Old shape:
-- collect image list
-- scan each unique image here
-- classify findings here
-- remediate image here
+**Primary Argo entrypoint:**
+- `cluster-scan-orchestrator`
 
-New shape:
-- ingest the running image list from the existing stack
-- dedupe runtime artifacts here
-- ingest compact scan metadata from the existing stack
-- plan family refreshes here
-- rebuild only the internal managed base families that need action
+## Why the split matters
+Before, the repo was mixing two different jobs:
+- *runtime visibility/reporting*
+- *base-family rebuild automation*
 
-## End-to-end walkthrough
-If you need to explain the full system to another engineer, use this sequence.
+Those are related, but they are not the same thing.
 
-### 1. Existing scanner stack produces running image inventory
-The current cluster image dump / Aqua workflow already emits the runtime image list.
+If you keep them glued together, you get garbage behavior:
+- runtime dashboard work starts mutating rebuild queues
+- rebuild flow becomes coupled to cluster inventory timing
+- reporting artifacts get buried inside remediation logic
+- every scope change forces another stupid architectural rewrite
 
-Typical source:
-- `images.json`
-- object store path or PVC handoff
+So the repo now treats them as separate products that can still share helper code where useful.
 
-This repo expects that `images.json` is the complete running-image inventory for the
-cluster or environment scope being remediated. If a running image is missing from
-that file, this platform will not include it in dedupe, scanner metadata matching,
-or family refresh planning.
+---
 
-Current known shape:
+## Flow A: base-image rebuild automation
+
+### Goal
+Automate the part that is currently:
+> go find the approved upstream base, copy it, add org stuff, rebuild, publish
+
+### Inputs
+One family plan JSON object, typically shaped like:
 
 ```json
 {
-  "epm_code": "gpedev",
-  "namespaces": [
-    {
-      "namespace": "argo-hk",
-      "images": [
-        "af.cds.bns:5002/aqua/scanner:2022.4.484",
-        "quay.io/argoproj/argocli:v3.6.7"
-      ]
-    }
-  ]
+  "family": "ubi9-openjdk-17",
+  "upstream": {
+    "sourceType": "redhat-catalog",
+    "image": "registry.redhat.io/ubi9/openjdk-17-runtime",
+    "digest": "sha256:..."
+  },
+  "publication": {
+    "targetRepository": "registry.corp/base/ubi9-openjdk-17"
+  }
 }
 ```
 
-**Purpose:**
-Define what is actually running in clusters.
+### Outputs
+- upstream acquisition JSON
+- rebuild handoff JSON
 
-**Why it is needed:**
-If it is not running, it is not part of the immediate blast radius.
+### Relevant files
+- `scripts/refresh_base_family.py`
+- `scripts/rebuild_family_candidate.py`
+- `helm/cluster-scan/templates/workflowtemplate-remediate-image.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-base-rebuild-automation.yaml`
 
-**How it plugs in:**
-This becomes the input to the dedupe child workflow. The dedupe script now expands this nested format automatically, so no pre-conversion step is required.
+### Important rule
+This flow is **not** driven by nightly cluster scans anymore.
+If the base-image repo decides a family should rebuild, it calls this flow directly.
 
-### 2. Existing scanner stack produces vulnerability metadata
-The current Aqua/Trivy workflow also produces scan metadata and reports.
+---
 
-Preferred inputs for this repo:
-- compact JSON metadata summaries
-- optional HTML/CSV evidence links
+## Flow B: nightly runtime vulnerability reporting
 
-Avoid relying on:
-- full image archives
-- giant duplicated raw blobs unless absolutely necessary
+### Goal
+Produce a complete view of:
+- what is running on clusters
+- which images are used where
+- what each image's Trivy results are
+- which apps/workloads/clusters are currently exposed
 
-**Purpose:**
-Provide vulnerability signal without forcing this repo to redo the scanner's job.
+### Runtime reporting pipeline
 
-**Why it is needed:**
-Storage and compute get stupid fast if every downstream workflow re-archives every image again.
+#### 1. Collect runtime inventory
+Script:
+- `scripts/collect_cluster_images.py`
 
-**How it plugs in:**
-This becomes the input to the metadata-planning child workflow.
+The collector now preserves more than just image strings.
+It keeps runtime context like:
+- cluster
+- namespace
+- workload kind
+- workload name
+- pod name
+- container name
+- container type
 
-### 3. Child workflow: inventory-dedup
-This child reads the `images.json` running image inventory and converts repeated sightings into:
+That matters because a dashboard that only says *"some namespace used this image once"* is basically decorative nonsense.
+
+#### 2. Dedupe runtime artifacts
+Script:
+- `scripts/deduplicate_image_records.py`
+
+Outputs:
 - `unique-images.json`
+- `unique-images.min.json`
 - `sightings.json`
 - `dedupe-summary.json`
 
-**Purpose:**
-Separate one unique runtime artifact from many impacted workloads.
+This keeps scan cost sane by scanning one unique image once, while preserving every place it was seen.
 
-**Why it is needed:**
-If 20 workloads use the same digest, planning 20 separate remediations is brain-dead.
+#### 3. Scan each unique image once with Trivy
+Script:
+- `scripts/scan_unique_images.py`
 
-**How it plugs in:**
-The planner uses `unique-images.json` as the runtime artifact set.
+Output:
+- `scan-metadata.json`
 
-### 4. Child workflow: plan-refresh-from-scan-metadata
-This child reads:
-- `unique-images.json`
-- existing scanner metadata JSON
-- the internal base-family catalog
+This remains artifact-centric on purpose.
+One image, one scan. Not one scan per workload sighting like some kind of compute-burning ritual sacrifice.
 
-It emits:
-- `image-evaluations.json`
-- `family-refresh-plans.json`
-- `family-acquisition-fanout.min.json`
-- `family-refresh-summary.json`
+#### 4. Re-consolidate sightings with scan results
+Script:
+- `scripts/build_runtime_vulnerability_reports.py`
 
-**Purpose:**
-Convert scanner findings into deduplicated internal base-family refresh work.
+Outputs:
+- `runtime-artifacts.json`
+- `cluster-runtime-vulnerability-report.json`
+- `workload-vulnerability-dashboard.json`
+- `application-vulnerability-dashboard.json`
+- `runtime-vulnerability-summary.json`
+- `index.html`
 
-**Why it is needed:**
-The scanner tells you something is vulnerable.
-It does **not** tell you which internal golden base should be rebuilt.
+This is the missing piece you called out correctly:
+**dedupe is good for scanning, but reporting needs the sightings merged back in**.
 
-**How it plugs in:**
-Its minimal acquisition fan-out output is the family-level input for the upstream acquisition child workflow.
+That merge step is what makes the dashboard comprehensive again.
 
-### 5. Child fan-out: refresh-base-family
-The parent fans out one child per family refresh plan.
+### Dashboard/reporting data model
+The reporting flow now gives you two useful views:
 
-Each child should eventually:
-1. validate that the upstream source is corporate-approved,
-2. require a pinned digest unless explicitly overridden by policy,
-3. copy the approved upstream base into a handoff location,
-4. pass that artifact to the existing cert injection, hardening, rebuild, verification, and publish process.
+#### Cluster view
+Nested by:
+- cluster
+- namespace
+- workload
+- container
+- image
+- scan summary
 
-**Purpose:**
-Acquire the approved upstream base for the internal base image family.
+This answers:
+- what is running on each cluster?
+- which containers are exposed?
+- how many high/critical findings are tied to each runtime image?
 
-**Why it is needed:**
-This is the step that actually removes the current manual “go to Red Hat, grab newer base, add certs, push internally” work.
+#### Application view
+Aggregated by workload/app.
 
-**How it plugs in:**
-This is the upstream acquisition unit. One family in, one approved upstream base handoff out.
+This answers:
+- what images does this app use?
+- in which clusters/namespaces does it run?
+- which of its containers/images currently carry high/critical findings?
 
-## Why family-level rebuild is the correct action
-A single scanner event on an application image should usually not cause a custom rebuild of that app image.
+---
 
-In this environment, the real controlled remediation unit is typically the internal base family:
-- `ubi9-openjdk-17`
-- `ubi9-nginx`
-- `ubi9-python-311`
-- etc.
+## Argo workflow shape
 
-So the correct reactive flow is:
-- scanner finding occurs,
-- image is mapped to base family,
-- family refresh is planned once,
-- internal refreshed base is rebuilt and published once.
+### Runtime reporting flow
+Top-level workflow:
+- `cluster-scan-orchestrator`
 
-That gives you the “only act when needed” behavior without turning the registry into cursed one-off mutations.
+Steps:
+1. `collect-cluster-images`
+2. `inventory-dedup`
+3. `scan-unique-images`
+4. `build-runtime-report`
 
-## Why metadata-only planning is better
-You specifically asked whether this can work off metadata instead of the whole image.
+### Base rebuild automation flow
+Top-level workflow:
+- `cluster-scan-base-rebuild-automation`
 
-Yes. That is the right move.
+Delegates to:
+- `refresh-base-family`
 
-### The planner only really needs:
-- image identity (image/digest/normalized ref)
-- High/Critical counts
-- fixable High/Critical counts
-- target classes
-- managed-base signal and/or base-family hint
-- links to evidence reports
+---
 
-That is enough to decide whether to queue a family rebuild.
+## Helm/chart changes
+The chart now includes:
+- runtime reporting merge workflow template
+- base rebuild automation wrapper workflow template
+- runtime reporting script ConfigMap
+- runtime dashboard renderer script + HTML artifact output
+- runtime reporting output directory in values
+- updated orchestrator that ends in reporting, not refresh fan-out
 
-### It does *not* need:
-- a full saved image tarball for every source image
-- duplicate scanner runs for everything
-- massive storage churn just to make the pipeline feel busy
+Relevant templates:
+- `templates/workflowtemplate-orchestrator.yaml`
+- `templates/workflowtemplate-build-runtime-report.yaml`
+- `templates/workflowtemplate-base-rebuild-automation.yaml`
+- `templates/workflowtemplate-remediate-image.yaml`
+- `templates/configmap-metadata.yaml`
 
-## Required family catalog
-This repo now includes a base-family catalog example:
-- `config/base-family-catalog.example.json`
+Relevant values:
+- `workflowPaths.runtimeReportingOutputDir`
+- `schedule.cron` for nightly runtime reporting
 
-This is the actual source of truth for:
-- internal family name
-- selectors/matching rules
-- approved upstream source image
-- customization profile
-- target internal registry repo
-- publication tag strategy
-- verification policy
+---
 
-Without this, the system can detect a problem but cannot deterministically know what to rebuild.
+## Scripts summary
 
-## Current Argo workflow shape
-### Parent workflow
-- `scotiabank-registry-remediator-orchestrator`
+### Runtime reporting
+- `scripts/collect_cluster_images.py`
+- `scripts/deduplicate_image_records.py`
+- `scripts/scan_unique_images.py`
+- `scripts/build_runtime_vulnerability_reports.py`
+- `scripts/trivy_to_scan_metadata.py`
+- `scripts/filter_trivy_actionable.py`
 
-### Child workflows
-- `inventory-dedup`
-- `plan-refresh-from-scan-metadata`
-- `refresh-base-family` (fan-out)
+### Base rebuild automation
+- `scripts/refresh_base_family.py`
+- `scripts/rebuild_family_candidate.py`
 
-This preserves the parent/child Argo model from the current platform instead of replacing it with some unrelated architecture from outer space.
+### Optional helper still present
+- `scripts/plan_base_refresh_from_scan_metadata.py`
 
-## Folder layout
-- `helm/scotiabank-registry-remediator/`: Helm chart scaffold
-- `config/source-locations.example.yaml`: existing scanner input locations
-- `config/base-family-catalog.example.json`: managed internal base-family catalog
-- `config/ownership-map.example.yaml`: owner/publication defaults around the family catalog
-- `scripts/deduplicate_image_records.py`: dedupe runtime image sightings
-- `scripts/plan_base_refresh_from_scan_metadata.py`: convert scanner metadata into family refresh plans
-- `scripts/refresh_base_family.py`: validate and dry-run approved upstream base acquisition
-- `scripts/trivy_to_scan_metadata.py`: convert raw Trivy JSON into the compact `scan-metadata/v1` contract
-- `docs/scan-metadata-input-schema.md`: expected compact metadata shape
-- `docs/scan-metadata.schema.json`: machine-readable scan metadata contract
-- `docs/trivy-reactive-registry-base-refresh.md`: design rationale and end-to-end workflow
-- `docs/end-to-end-argo-control-plane.md`: updated upstream architecture for per-cluster inventory, dedupe, scan, planning, upstream acquisition, and rebuild handoff
-- `docs/architecture-flow.md`: Mermaid architecture diagram
-- `docs/auth-and-secrets.md`: notes on Dex/LDAP, service accounts, and registry/object-store secrets
-- `DEMO.md`: presenter-focused demo script and commands
-- `DEMO_FAQ.md`: demo Q&A, repo map, Helm resource explanation, and naming conventions
-- `TRACKDOWN.md`: checklist for Rancher, Confluence, and Bitbucket discovery
-- `WALKTHROUGH.md`: file-by-file walkthrough of the repo
+That planner is still here as a helper if you ever want to translate scan metadata into family plans, but it is **no longer part of the default nightly reporting path**.
 
-## New important files
-### `scripts/plan_base_refresh_from_scan_metadata.py`
-Reads deduplicated runtime image records plus existing scanner metadata plus the base-family catalog and emits:
-- per-image evaluations
-- deduplicated family refresh plans
-- summary counts
+---
 
-### `config/base-family-catalog.example.json`
-Defines the mapping between vulnerable runtime images and the managed internal base families to rebuild.
-The example catalog includes `ubi9-openjdk-17`, `ubi9-python-311`, and `ubi9-nginx`.
-Replace the placeholder digests with corporate-approved pinned digests before execute mode.
+## Testing
+Current unit tests cover:
+- runtime inventory collection with workload/container preservation
+- dedupe expansion preserving runtime context
+- scan/report merge into cluster and app views
 
-### `docs/scan-metadata-input-schema.md`
-Defines the compact metadata shape this remediation layer expects from the current scanner pipeline.
+Test files:
+- `tests/test_collect_cluster_images.py`
+- `tests/test_deduplicate_image_records.py`
+- `tests/test_scan_unique_images.py`
+- `tests/test_build_runtime_vulnerability_reports.py`
 
-### `docs/trivy-reactive-registry-base-refresh.md`
-Explains why event-driven-from-Trivy still works, but only if rebuild happens at the family level.
+Run with:
 
-## Scope boundary
-### In scope
-- consume runtime image inventory from the current stack
-- consume existing scanner metadata
-- dedupe runtime artifacts
-- plan internal base-family refreshes
-- scaffold rebuild/rescan/publish of internal base images
-
-### Out of scope for now
-- application PR generation
-- arbitrary app dependency mutation
-- live cluster mutation
-- replacing the current scanning/reporting platform
-
-## Will this plug right in?
-Short answer: **partially**.
-
-### Already real in this repo
-- runtime image dedupe logic
-- metadata-driven family refresh planner
-- family catalog example
-- guarded upstream base acquisition worker for `refresh-base-family`
-- updated docs for the existing scanner integration model
-- parent/child Argo workflow scaffold around dedupe -> plan -> refresh
-
-### Still scaffold / placeholder
-- exact event source integration from the current Aqua/Trivy platform
-- upstream Red Hat auth and real digest population in the family catalog
-- existing downstream cert/customization/hardening handoff integration
-- post-build scan gate wiring
-- registry push/signing
-- dedupe window / state tracking to suppress duplicate refresh storms
-
-So yes, the architecture is now aligned to the current environment.
-No, it is not a finished production implementation yet.
-
-## Example planner input/output flow
-### Example inputs
-- `examples/unique-images-for-refresh.example.json`
-- `examples/scan-metadata.example.json`
-- `config/base-family-catalog.example.json`
-
-### Example planner run
 ```bash
-python3 scripts/plan_base_refresh_from_scan_metadata.py \
-  examples/unique-images-for-refresh.example.json \
-  examples/scan-metadata.example.json \
-  config/base-family-catalog.example.json \
-  /tmp/refresh-plan-example
+python3 -m unittest discover -s tests -v
 ```
 
-### Example dedupe run
-```bash
-python3 scripts/deduplicate_image_records.py \
-  examples/collected-image-records.example.json \
-  examples/output
-```
+---
 
-## Recommended next steps
-1. Confirm the exact shape of the current scanner metadata you can export reliably.
-2. Map current managed internal bases into `config/base-family-catalog.example.json`.
-3. Decide the event handoff mechanism:
-   - webhook
-   - object-store watcher
-   - scheduled Argo wrapper that only reacts to new metadata
-4. Replace example upstream digests with approved corporate-pinned Red Hat/internal digests.
-5. Wire the upstream handoff directory into the existing cert/hardening/rebuild process.
-6. Add candidate verification + publish policy enforcement.
-7. Add state recording so repeated scanner events for the same family do not cause rebuild spam.
+## Practical outcome
+If someone asks *"what does this repo own now?"*, the answer is finally clean:
 
-## If you need the elevator pitch
-> The current scanner pipeline keeps doing inventory and vuln detection; this repo consumes its runtime image list and compact vuln metadata, deduplicates affected artifacts, resolves them back to managed internal base families, and rebuilds only the base images that actually need refresh.
+### It owns
+- nightly runtime inventory + Trivy reporting for running cluster images
+- rebuild automation once a base-family rebuild decision already exists
+
+### It does not own
+- the base-image repo's existing scan/smoke-test logic
+- automatic coupling from nightly runtime findings straight into rebuild actions
+
+Which is good, because that coupling would have been architectural glue-sniffing.

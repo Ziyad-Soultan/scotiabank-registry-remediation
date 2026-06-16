@@ -2,7 +2,7 @@
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
-**Goal:** Wire the `scotiabank-registry-remediator` Helm/Argo scaffold into the `argo-hk` dev namespace so the team can run a real end-to-end dev workflow: collect cluster images -> dedupe -> scan unique images -> plan base-family refreshes -> execute refresh dry-run handoff.
+**Goal:** Wire the `cluster-scan` Helm/Argo scaffold into the `argo-hk` dev namespace so the team can run a real end-to-end dev workflow: collect cluster images -> dedupe -> scan unique images -> plan base-family refreshes -> execute refresh dry-run handoff.
 
 **Architecture:** Keep Helm as the packaging layer and Argo Workflows as the execution layer. Use a namespace-specific values override for `argo-hk`, keep risky stages in `dry-run` / `placeholder` mode, and add the missing environment integration pieces explicitly instead of pretending the scaffold is already production-ready.
 
@@ -13,7 +13,7 @@
 ## Working assumptions
 
 1. The target Argo namespace is `argo-hk`.
-2. The chart path is `helm/scotiabank-registry-remediator/`.
+2. The chart path is `helm/cluster-scan/`.
 3. The orchestrator entrypoint is `templates/workflowtemplate-orchestrator.yaml`.
 4. First success criteria are dev-safe and non-mutating:
    - chart renders cleanly
@@ -30,8 +30,8 @@
 **Objective:** Add a real dev override file for `argo-hk` so namespace-specific config is not jammed into the base `values.yaml`.
 
 **Files:**
-- Create: `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
-- Reference: `helm/scotiabank-registry-remediator/values.yaml`
+- Create: `helm/cluster-scan/values-argo-hk-dev.yaml`
+- Reference: `helm/cluster-scan/values.yaml`
 
 **Step 1: Create the override file**
 
@@ -44,11 +44,11 @@ namespace: "argo-hk"
 
 serviceAccount:
   create: false
-  name: "scotiabank-registry-remediator"
+  name: "cluster-scan"
 
 argo:
   workflowLabels:
-    app.kubernetes.io/part-of: scotiabank-registry-remediator
+    app.kubernetes.io/part-of: cluster-scan
     environment: dev
     platform.bank/environment: dev
     platform.bank/namespace: argo-hk
@@ -56,7 +56,7 @@ argo:
     bucketOrPath: "REPLACE_WITH_ARGO_ARTIFACT_REPOSITORY"
   pvc:
     enabled: true
-    claimName: "scotiabank-registry-remediator-shared"
+    claimName: "cluster-scan-shared"
     mountPath: /work/shared
     storageClassName: "REPLACE_WITH_ARGO_HK_STORAGE_CLASS"
     size: 20Gi
@@ -98,7 +98,7 @@ scanner:
 
 familyCatalog:
   inputPath: "/opt/remediator/catalog/base-family-catalog.example.json"
-  configMapName: scotiabank-registry-remediator-family-catalog
+  configMapName: cluster-scan-family-catalog
 
 workflowPaths:
   dedupeOutputDir: "/work/shared/dedupe-output"
@@ -128,7 +128,7 @@ rebuild:
 Run:
 
 ```bash
-helm template scotia-remediator-dev helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm template scotia-remediator-dev helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 Expected:
@@ -139,7 +139,7 @@ Expected:
 **Step 3: Commit**
 
 ```bash
-git add helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+git add helm/cluster-scan/values-argo-hk-dev.yaml
 git commit -m "feat: add argo-hk dev values override"
 ```
 
@@ -151,34 +151,34 @@ git commit -m "feat: add argo-hk dev values override"
 
 **Files:**
 - Create: `docs/argo-hk-dev-bringup.md`
-- Reference: `helm/scotiabank-registry-remediator/templates/*.yaml`
-- Reference: `helm/scotiabank-registry-remediator/files/*.py`
+- Reference: `helm/cluster-scan/templates/*.yaml`
+- Reference: `helm/cluster-scan/files/*.py`
 
 **Step 1: Document the exact files that define the control plane**
 
 The runbook must explicitly call out:
 
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-orchestrator.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-collect-cluster-images.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-inventory-dedup.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-unique-images.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-metadata-planner.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-remediate-image.yaml`
-- `helm/scotiabank-registry-remediator/templates/configmap-metadata.yaml`
-- `helm/scotiabank-registry-remediator/templates/cronworkflow-scheduled.yaml`
-- `helm/scotiabank-registry-remediator/templates/pvc-shared-data.yaml`
-- `helm/scotiabank-registry-remediator/values.yaml`
-- `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-orchestrator.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-collect-cluster-images.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-inventory-dedup.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-unique-images.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-metadata-planner.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-remediate-image.yaml`
+- `helm/cluster-scan/templates/configmap-metadata.yaml`
+- `helm/cluster-scan/templates/cronworkflow-scheduled.yaml`
+- `helm/cluster-scan/templates/pvc-shared-data.yaml`
+- `helm/cluster-scan/values.yaml`
+- `helm/cluster-scan/values-argo-hk-dev.yaml`
 
 **Step 2: Document the missing infra pieces that are not yet templated**
 
 Call out these to-be-added templates explicitly:
 
-- `helm/scotiabank-registry-remediator/templates/serviceaccount.yaml`
-- `helm/scotiabank-registry-remediator/templates/role.yaml`
-- `helm/scotiabank-registry-remediator/templates/rolebinding.yaml`
-- optional: `helm/scotiabank-registry-remediator/templates/secret-registry-auth.yaml`
-- optional: `helm/scotiabank-registry-remediator/templates/networkpolicy.yaml`
+- `helm/cluster-scan/templates/serviceaccount.yaml`
+- `helm/cluster-scan/templates/role.yaml`
+- `helm/cluster-scan/templates/rolebinding.yaml`
+- optional: `helm/cluster-scan/templates/secret-registry-auth.yaml`
+- optional: `helm/cluster-scan/templates/networkpolicy.yaml`
 
 Also state what each one is for.
 
@@ -246,16 +246,16 @@ git commit -m "docs: add argo-hk implementation plan"
 **Objective:** Make sure the repo can at least render and package before wasting time in the cluster.
 
 **Files:**
-- Verify: `helm/scotiabank-registry-remediator/Chart.yaml`
-- Verify: `helm/scotiabank-registry-remediator/templates/*.yaml`
-- Verify: `helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml`
+- Verify: `helm/cluster-scan/Chart.yaml`
+- Verify: `helm/cluster-scan/templates/*.yaml`
+- Verify: `helm/cluster-scan/values-argo-hk-dev.yaml`
 
 **Step 1: Render the chart**
 
 Run:
 
 ```bash
-helm template scotia-remediator-dev helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml > /tmp/scotia-remediator-dev-rendered.yaml
+helm template scotia-remediator-dev helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml > /tmp/scotia-remediator-dev-rendered.yaml
 ```
 
 Expected:
@@ -268,7 +268,7 @@ Expected:
 Run:
 
 ```bash
-helm lint helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm lint helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 Expected:
@@ -287,7 +287,7 @@ Check for:
 **Step 4: Commit any required follow-up fixes**
 
 ```bash
-git add helm/scotiabank-registry-remediator
+git add helm/cluster-scan
 git commit -m "fix: correct argo-hk render-time config"
 ```
 
@@ -299,9 +299,9 @@ git commit -m "fix: correct argo-hk render-time config"
 
 **Files:**
 - Modify: `config/prod-clusters.example.json`
-- Modify: `helm/scotiabank-registry-remediator/files/prod-clusters.example.json`
+- Modify: `helm/cluster-scan/files/prod-clusters.example.json`
 - Modify: `config/base-family-catalog.example.json`
-- Modify: `helm/scotiabank-registry-remediator/files/base-family-catalog.example.json`
+- Modify: `helm/cluster-scan/files/base-family-catalog.example.json`
 
 **Step 1: Trim the cluster config to the actual dev target**
 
@@ -346,7 +346,7 @@ Do not enable any push/publish behavior until:
 **Step 4: Commit**
 
 ```bash
-git add config/prod-clusters.example.json config/base-family-catalog.example.json helm/scotiabank-registry-remediator/files/prod-clusters.example.json helm/scotiabank-registry-remediator/files/base-family-catalog.example.json
+git add config/prod-clusters.example.json config/base-family-catalog.example.json helm/cluster-scan/files/prod-clusters.example.json helm/cluster-scan/files/base-family-catalog.example.json
 git commit -m "feat: add dev-safe cluster and family catalog config"
 ```
 
@@ -357,11 +357,11 @@ git commit -m "feat: add dev-safe cluster and family catalog config"
 **Objective:** Stop relying on magic. Add the missing Kubernetes identity objects or explicitly document the pre-created bank-managed ones.
 
 **Files:**
-- Create: `helm/scotiabank-registry-remediator/templates/serviceaccount.yaml`
-- Create: `helm/scotiabank-registry-remediator/templates/role.yaml`
-- Create: `helm/scotiabank-registry-remediator/templates/rolebinding.yaml`
-- Optional create: `helm/scotiabank-registry-remediator/templates/clusterrole.yaml`
-- Optional create: `helm/scotiabank-registry-remediator/templates/clusterrolebinding.yaml`
+- Create: `helm/cluster-scan/templates/serviceaccount.yaml`
+- Create: `helm/cluster-scan/templates/role.yaml`
+- Create: `helm/cluster-scan/templates/rolebinding.yaml`
+- Optional create: `helm/cluster-scan/templates/clusterrole.yaml`
+- Optional create: `helm/cluster-scan/templates/clusterrolebinding.yaml`
 
 **Step 1: Decide whether the service account is chart-managed or platform-managed**
 
@@ -393,7 +393,7 @@ If it needs cross-namespace pod read in-cluster, you likely need ClusterRole rul
 Run:
 
 ```bash
-helm template scotia-remediator-dev helm/scotiabank-registry-remediator -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml | less
+helm template scotia-remediator-dev helm/cluster-scan -f helm/cluster-scan/values-argo-hk-dev.yaml | less
 ```
 
 Expected:
@@ -403,7 +403,7 @@ Expected:
 **Step 5: Commit**
 
 ```bash
-git add helm/scotiabank-registry-remediator/templates/serviceaccount.yaml helm/scotiabank-registry-remediator/templates/role.yaml helm/scotiabank-registry-remediator/templates/rolebinding.yaml
+git add helm/cluster-scan/templates/serviceaccount.yaml helm/cluster-scan/templates/role.yaml helm/cluster-scan/templates/rolebinding.yaml
 git commit -m "feat: add argo-hk service account and RBAC templates"
 ```
 
@@ -457,7 +457,7 @@ Reason:
 Run:
 
 ```bash
-git add helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+git add helm/cluster-scan/values-argo-hk-dev.yaml
 git commit -m "chore: wire approved worker images for argo-hk dev"
 ```
 
@@ -468,14 +468,14 @@ git commit -m "chore: wire approved worker images for argo-hk dev"
 **Objective:** Prove the dev control plane works in the real environment before enabling cron.
 
 **Files:**
-- Deploy: rendered resources from `helm/scotiabank-registry-remediator/`
+- Deploy: rendered resources from `helm/cluster-scan/`
 
 **Step 1: Install or upgrade the chart**
 
 Run:
 
 ```bash
-helm upgrade --install scotia-remediator-dev helm/scotiabank-registry-remediator -n argo-hk -f helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+helm upgrade --install scotia-remediator-dev helm/cluster-scan -n argo-hk -f helm/cluster-scan/values-argo-hk-dev.yaml
 ```
 
 Expected:
@@ -502,7 +502,7 @@ Expected:
 Run:
 
 ```bash
-argo submit --from workflowtemplate/scotiabank-registry-remediator-orchestrator -n argo-hk
+argo submit --from workflowtemplate/cluster-scan-orchestrator -n argo-hk
 ```
 
 If Argo CLI is unavailable, submit from the Argo UI.
@@ -571,7 +571,7 @@ Suggested first schedule:
 **Step 4: Commit**
 
 ```bash
-git add helm/scotiabank-registry-remediator/values-argo-hk-dev.yaml
+git add helm/cluster-scan/values-argo-hk-dev.yaml
 git commit -m "chore: enable argo-hk dev schedule after green manual run"
 ```
 

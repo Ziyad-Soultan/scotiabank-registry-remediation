@@ -2,11 +2,11 @@ namespace: "argo-hk"
 
 serviceAccount:
   create: false
-  name: "scotiabank-registry-remediator"
+  name: "cluster-scan"
 
 argo:
   workflowLabels:
-    app.kubernetes.io/part-of: scotiabank-registry-remediator
+    app.kubernetes.io/part-of: cluster-scan
     environment: dev
     platform.bank/environment: dev
     platform.bank/namespace: argo-hk
@@ -14,7 +14,7 @@ argo:
     bucketOrPath: "REPLACE_WITH_ARGO_ARTIFACT_REPOSITORY"
   pvc:
     enabled: true
-    claimName: "scotiabank-registry-remediator-shared"
+    claimName: "cluster-scan-shared"
     mountPath: /work/shared
     storageClassName: "REPLACE_WITH_ARGO_HK_STORAGE_CLASS"
     size: 20Gi
@@ -60,7 +60,7 @@ scanner:
 
 familyCatalog:
   inputPath: "/opt/remediator/catalog/base-family-catalog.example.json"
-  configMapName: scotiabank-registry-remediator-family-catalog
+  configMapName: cluster-scan-family-catalog
 
 workflowPaths:
   dedupeOutputDir: "/work/shared/dedupe-output"

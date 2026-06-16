@@ -17,7 +17,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: scotiabank-registry-remediator-refresh-base-family
+  name: cluster-scan-refresh-base-family
   namespace: {{ .Values.namespace | quote }}
 spec:
   serviceAccountName: {{ .Values.serviceAccount.name | quote }}
@@ -28,7 +28,7 @@ spec:
         claimName: {{ .Values.argo.pvc.claimName | quote }}
     - name: refresh-script
       configMap:
-        name: scotiabank-registry-remediator-refresh-base-family-script
+        name: cluster-scan-refresh-base-family-script
         defaultMode: 0755
   templates:
     - name: refresh-base-family

@@ -7,27 +7,46 @@ from scripts.collect_cluster_images import build_inventory_payload, write_invent
 
 
 class CollectClusterImagesTests(unittest.TestCase):
-    def test_build_inventory_payload_keeps_example_shape_and_dedupes_per_namespace(self):
+    def test_build_inventory_payload_preserves_workload_and_container_context(self):
         pod_list = {
             "items": [
                 {
-                    "metadata": {"namespace": "payments"},
+                    "metadata": {
+                        "name": "payments-api-7d9c6d9bb8-qwert",
+                        "namespace": "payments",
+                        "labels": {
+                            "app.kubernetes.io/name": "payments",
+                            "app.kubernetes.io/instance": "payments-prod",
+                            "app.kubernetes.io/component": "api",
+                            "app.kubernetes.io/part-of": "card-platform",
+                            "app.kubernetes.io/managed-by": "helm",
+                        },
+                        "ownerReferences": [
+                            {"controller": True, "kind": "ReplicaSet", "name": "payments-api-7d9c6d9bb8"}
+                        ],
+                    },
                     "spec": {
                         "containers": [
-                            {"image": "registry.corp/apps/payments-api:1.2.3"},
-                            {"image": "registry.corp/apps/payments-api:1.2.3"},
+                            {"name": "api", "image": "registry.corp/apps/payments-api:1.2.3"},
+                            {"name": "api", "image": "registry.corp/apps/payments-api:1.2.3"},
                         ],
                         "initContainers": [
-                            {"image": "registry.corp/base/jdk11-runtime:approved"}
+                            {"name": "certs", "image": "registry.corp/base/jdk11-runtime:approved"}
                         ],
                     },
                 },
                 {
-                    "metadata": {"namespace": "edge"},
+                    "metadata": {
+                        "name": "edge-web-0",
+                        "namespace": "edge",
+                        "ownerReferences": [
+                            {"controller": True, "kind": "StatefulSet", "name": "edge-web"}
+                        ],
+                    },
                     "spec": {
                         "containers": [
-                            {"image": "registry.corp/base/nginx:stable"},
-                            {"image": "registry.corp/base/os:9.4"},
+                            {"name": "nginx", "image": "registry.corp/base/nginx:stable"},
+                            {"name": "os", "image": "registry.corp/base/os:9.4"},
                         ],
                     },
                 },
@@ -52,15 +71,55 @@ class CollectClusterImagesTests(unittest.TestCase):
                 {
                     "namespace": "edge",
                     "images": [
-                        "registry.corp/base/nginx:stable",
-                        "registry.corp/base/os:9.4",
+                        {
+                            "image": "registry.corp/base/nginx:stable",
+                            "containerName": "nginx",
+                            "containerType": "container",
+                            "podName": "edge-web-0",
+                            "workloadKind": "StatefulSet",
+                            "workloadName": "edge-web",
+                            "appName": "edge-web",
+                        },
+                        {
+                            "image": "registry.corp/base/os:9.4",
+                            "containerName": "os",
+                            "containerType": "container",
+                            "podName": "edge-web-0",
+                            "workloadKind": "StatefulSet",
+                            "workloadName": "edge-web",
+                            "appName": "edge-web",
+                        },
                     ],
                 },
                 {
                     "namespace": "payments",
                     "images": [
-                        "registry.corp/apps/payments-api:1.2.3",
-                        "registry.corp/base/jdk11-runtime:approved",
+                        {
+                            "image": "registry.corp/apps/payments-api:1.2.3",
+                            "containerName": "api",
+                            "containerType": "container",
+                            "podName": "payments-api-7d9c6d9bb8-qwert",
+                            "workloadKind": "Deployment",
+                            "workloadName": "payments-api",
+                            "appName": "payments",
+                            "appInstance": "payments-prod",
+                            "component": "api",
+                            "partOf": "card-platform",
+                            "managedBy": "helm",
+                        },
+                        {
+                            "image": "registry.corp/base/jdk11-runtime:approved",
+                            "containerName": "certs",
+                            "containerType": "initContainer",
+                            "podName": "payments-api-7d9c6d9bb8-qwert",
+                            "workloadKind": "Deployment",
+                            "workloadName": "payments-api",
+                            "appName": "payments",
+                            "appInstance": "payments-prod",
+                            "component": "api",
+                            "partOf": "card-platform",
+                            "managedBy": "helm",
+                        },
                     ],
                 },
             ],

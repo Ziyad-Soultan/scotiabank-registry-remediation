@@ -16,7 +16,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: scotiabank-registry-remediator-scan-metadata-planner
+  name: cluster-scan-scan-metadata-planner
   namespace: {{ .Values.namespace | quote }}
 spec:
   serviceAccountName: {{ .Values.serviceAccount.name | quote }}
@@ -27,7 +27,7 @@ spec:
         claimName: {{ .Values.argo.pvc.claimName | quote }}
     - name: planner-script
       configMap:
-        name: scotiabank-registry-remediator-metadata-planner-script
+        name: cluster-scan-metadata-planner-script
         defaultMode: 0755
     - name: family-catalog
       configMap:

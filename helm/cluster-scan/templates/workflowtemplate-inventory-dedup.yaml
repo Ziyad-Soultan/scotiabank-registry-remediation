@@ -17,7 +17,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: scotiabank-registry-remediator-inventory-dedup
+  name: cluster-scan-inventory-dedup
   namespace: {{ .Values.namespace | quote }}
 spec:
   serviceAccountName: {{ .Values.serviceAccount.name | quote }}
@@ -28,7 +28,7 @@ spec:
         claimName: {{ .Values.argo.pvc.claimName | quote }}
     - name: dedupe-script
       configMap:
-        name: scotiabank-registry-remediator-dedupe-script
+        name: cluster-scan-dedupe-script
         defaultMode: 0755
   templates:
     - name: inventory-dedup

@@ -30,7 +30,7 @@ Expected location in the chart:
 Configured in:
 
 ```text
-helm/scotiabank-registry-remediator/values.yaml
+helm/cluster-scan/values.yaml
 ```
 
 This file should contain all running image references for the cluster/environment
@@ -76,7 +76,7 @@ Expected location in the chart:
 Configured in:
 
 ```text
-helm/scotiabank-registry-remediator/values.yaml
+helm/cluster-scan/values.yaml
 ```
 
 This is compact scanner output from Aqua/Trivy. It should include image identity,
@@ -111,7 +111,7 @@ Important files:
 
 ```text
 config/base-family-catalog.example.json
-helm/scotiabank-registry-remediator/files/base-family-catalog.example.json
+helm/cluster-scan/files/base-family-catalog.example.json
 ```
 
 The current example catalog includes:
@@ -245,7 +245,7 @@ scanner stack already emits compact scan metadata.
 Chart directory:
 
 ```text
-helm/scotiabank-registry-remediator
+helm/cluster-scan
 ```
 
 ### `Chart.yaml`
@@ -353,7 +353,7 @@ Optional scheduled trigger for the orchestrator.
 The schedule is a placeholder in:
 
 ```text
-helm/scotiabank-registry-remediator/values.yaml
+helm/cluster-scan/values.yaml
 ```
 
 ### `templates/pvc-shared-data.yaml`
@@ -435,7 +435,7 @@ done
 Helm validation with realistic values:
 
 ```bash
-helm lint helm/scotiabank-registry-remediator \
+helm lint helm/cluster-scan \
   --set namespace=registry-remediation \
   --set serviceAccount.name=registry-remediator \
   --set argo.pvc.claimName=registry-remediator-shared-work \
@@ -474,8 +474,8 @@ Before showing this at work, review:
 - `examples/scan-metadata.example.json`
 - `scripts/plan_base_refresh_from_scan_metadata.py`
 - `scripts/refresh_base_family.py`
-- `helm/scotiabank-registry-remediator/values.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-orchestrator.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-inventory-dedup.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-scan-metadata-planner.yaml`
-- `helm/scotiabank-registry-remediator/templates/workflowtemplate-remediate-image.yaml`
+- `helm/cluster-scan/values.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-orchestrator.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-inventory-dedup.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-scan-metadata-planner.yaml`
+- `helm/cluster-scan/templates/workflowtemplate-remediate-image.yaml`

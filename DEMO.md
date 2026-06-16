@@ -198,7 +198,7 @@ notes: no upstream image copy performed
 Command:
 
 ```bash
-helm lint helm/scotiabank-registry-remediator \
+helm lint helm/cluster-scan \
   --set namespace=registry-remediation \
   --set serviceAccount.name=registry-remediator \
   --set argo.pvc.claimName=registry-remediator-shared-work \
@@ -211,7 +211,7 @@ helm lint helm/scotiabank-registry-remediator \
 Optional render:
 
 ```bash
-helm template smoke helm/scotiabank-registry-remediator \
+helm template smoke helm/cluster-scan \
   --show-only templates/workflowtemplate-remediate-image.yaml \
   --set namespace=registry-remediation \
   --set serviceAccount.name=registry-remediator \

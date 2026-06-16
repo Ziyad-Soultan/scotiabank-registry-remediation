@@ -1,0 +1,42 @@
+# Top-level nightly runtime reporting workflow.
+#
+# Purpose in the system:
+# - Coordinates the runtime visibility pipeline in order.
+# - Starts from per-cluster runtime inventory files, not a pre-merged single file.
+# - Ends in reporting artifacts for dashboards and vulnerability review.
+#
+# Why it is needed:
+# - Nightly runtime scanning/reporting is now a separate product from base-image rebuild automation.
+# - Argo gives explicit parent/child boundaries for collect -> dedupe -> scan -> merge/report.
+#
+# How it plugs in:
+# - The collector queries the configured clusters for runtime inventory.
+# - This orchestrator deduplicates the combined runtime inventory, scans each unique image once,
+#   then merges the scan results back into cluster/application reporting JSON.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: cluster-scan-orchestrator
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: orchestrate
+  templates:
+    - name: orchestrate
+      steps:
+        - - name: collect-cluster-images
+            templateRef:
+              name: cluster-scan-collect-cluster-images
+              template: collect-cluster-images
+        - - name: inventory-dedup
+            templateRef:
+              name: cluster-scan-inventory-dedup
+              template: inventory-dedup
+        - - name: scan-unique-images
+            templateRef:
+              name: cluster-scan-scan-unique-images
+              template: scan-unique-images
+        - - name: build-runtime-report
+            templateRef:
+              name: cluster-scan-build-runtime-report
+              template: build-runtime-report

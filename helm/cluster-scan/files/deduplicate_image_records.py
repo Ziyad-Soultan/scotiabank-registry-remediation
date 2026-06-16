@@ -120,8 +120,33 @@ def expand_runtime_inventory_input(payload: Any) -> list[dict[str, Any]]:
             continue
         namespace = _clean(namespace_record.get("namespace"))
         images = namespace_record.get("images") or []
-        for image in images:
-            image_ref = _clean(image)
+        for image_entry in images:
+            if isinstance(image_entry, dict):
+                image_ref = _clean(image_entry.get("image") or image_entry.get("imageReference"))
+                workload_kind = _clean(image_entry.get("workloadKind"))
+                workload_name = _clean(image_entry.get("workloadName"))
+                app_name = _clean(image_entry.get("appName"))
+                app_instance = _clean(image_entry.get("appInstance"))
+                component = _clean(image_entry.get("component"))
+                part_of = _clean(image_entry.get("partOf"))
+                managed_by = _clean(image_entry.get("managedBy"))
+                pod_name = _clean(image_entry.get("podName"))
+                container_name = _clean(image_entry.get("containerName"))
+                container_type = _clean(image_entry.get("containerType"))
+                extra_metadata = image_entry.get("metadata") if isinstance(image_entry.get("metadata"), dict) else None
+            else:
+                image_ref = _clean(image_entry)
+                workload_kind = None
+                workload_name = None
+                app_name = None
+                app_instance = None
+                component = None
+                part_of = None
+                managed_by = None
+                pod_name = None
+                container_name = None
+                container_type = None
+                extra_metadata = None
             if not image_ref:
                 continue
             expanded.append(
@@ -133,11 +158,22 @@ def expand_runtime_inventory_input(payload: Any) -> list[dict[str, Any]]:
                         "environmentType": environment_type,
                         "clusterName": cluster_name,
                         "namespace": namespace,
+                        "workloadKind": workload_kind,
+                        "workloadName": workload_name,
+                        "appName": app_name,
+                        "appInstance": app_instance,
+                        "component": component,
+                        "partOf": part_of,
+                        "managedBy": managed_by,
+                        "podName": pod_name,
+                        "containerName": container_name,
+                        "containerType": container_type,
                         "ownerTeam": epm_code,
                         "notes": "Expanded from nested images.json runtime inventory",
                         "metadata": {
                             "epmCode": epm_code,
                             "projectName": project_name,
+                            "runtimeInventoryMetadata": extra_metadata,
                         },
                     }
                 )
@@ -253,6 +289,14 @@ def build_sighting(record: dict[str, Any], normalized: dict[str, Any]) -> dict[s
             "namespace": record.get("namespace"),
             "workloadKind": record.get("workloadKind"),
             "workloadName": record.get("workloadName"),
+            "appName": record.get("appName"),
+            "appInstance": record.get("appInstance"),
+            "component": record.get("component"),
+            "partOf": record.get("partOf"),
+            "managedBy": record.get("managedBy"),
+            "podName": record.get("podName"),
+            "containerName": record.get("containerName"),
+            "containerType": record.get("containerType"),
             "ownerTeam": record.get("ownerTeam"),
             "ownerContact": record.get("ownerContact"),
             "sourceRepoUrl": record.get("sourceRepoUrl"),
@@ -325,6 +369,7 @@ def aggregate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any
                 "sourceNames": [],
                 "clusters": [],
                 "workloads": [],
+                "apps": [],
                 "sightingCount": 0,
             }
 
@@ -342,6 +387,21 @@ def aggregate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any
                     "namespace": record.get("namespace"),
                     "workloadKind": record.get("workloadKind"),
                     "workloadName": record.get("workloadName"),
+                    "appName": record.get("appName"),
+                    "podName": record.get("podName"),
+                    "containerName": record.get("containerName"),
+                    "containerType": record.get("containerType"),
+                }
+            )
+        )
+        agg["apps"].append(
+            _deep_clean(
+                {
+                    "appName": record.get("appName") or record.get("workloadName"),
+                    "appInstance": record.get("appInstance"),
+                    "component": record.get("component"),
+                    "partOf": record.get("partOf"),
+                    "managedBy": record.get("managedBy"),
                 }
             )
         )
@@ -376,6 +436,7 @@ def aggregate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any
         agg["sourceNames"] = _unique_non_empty(agg["sourceNames"])
         agg["clusters"] = _unique_non_empty(agg["clusters"])
         agg["workloads"] = _unique_non_empty(agg["workloads"])
+        agg["apps"] = _unique_non_empty(agg["apps"])
         agg["sightingCount"] = len(current_sightings)
         unique_images.append(_deep_clean(agg))
         sightings[key] = current_sightings

@@ -1,0 +1,70 @@
+# Runtime reporting merge child workflow.
+#
+# Purpose in the system:
+# - Re-consolidates deduplicated image scan results back into real runtime sightings.
+# - Produces dashboard/reporting JSON without triggering rebuild side effects.
+#
+# Why it is needed:
+# - Dedupe is perfect for scan efficiency and useless for dashboards unless you join the sightings back in.
+# - The nightly runtime visibility flow should end in reporting artifacts, not in accidental remediation.
+#
+# How it plugs in:
+# - inventory-dedup emits unique-images.json and sightings.json.
+# - scan-unique-images emits scan-metadata.json.
+# - this child merges them into cluster and application level reporting payloads.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: cluster-scan-build-runtime-report
+  namespace: {{ .Values.namespace | quote }}
+spec:
+  serviceAccountName: {{ .Values.serviceAccount.name | quote }}
+  entrypoint: build-runtime-report
+  volumes:
+    - name: shared-work
+      persistentVolumeClaim:
+        claimName: {{ .Values.argo.pvc.claimName | quote }}
+    - name: reporting-script
+      configMap:
+        name: cluster-scan-runtime-reporting-script
+        defaultMode: 0755
+  templates:
+    - name: build-runtime-report
+      container:
+        image: "{{ .Values.images.workflowUtils.repository }}:{{ .Values.images.workflowUtils.tag }}"
+        command: [sh, -c]
+        args:
+          - |
+            set -euo pipefail
+            test -f {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json
+            test -f {{ .Values.workflowPaths.dedupeOutputDir | quote }}/sightings.json
+            test -f {{ .Values.scanner.metadataOutputPath | quote }}
+
+            python3 /opt/remediator/build_runtime_vulnerability_reports.py \
+              {{ .Values.workflowPaths.dedupeOutputDir | quote }}/unique-images.json \
+              {{ .Values.workflowPaths.dedupeOutputDir | quote }}/sightings.json \
+              {{ .Values.scanner.metadataOutputPath | quote }} \
+              {{ .Values.workflowPaths.runtimeReportingOutputDir | quote }}
+
+            python3 /opt/remediator/render_runtime_dashboard.py \
+              {{ .Values.workflowPaths.runtimeReportingOutputDir | quote }} \
+              {{ .Values.workflowPaths.runtimeDashboardHtmlPath | quote }}
+        volumeMounts:
+          - name: shared-work
+            mountPath: {{ .Values.argo.pvc.mountPath | quote }}
+          - name: reporting-script
+            mountPath: /opt/remediator
+      outputs:
+        artifacts:
+          - name: runtime-artifacts-report
+            path: "{{ .Values.workflowPaths.runtimeReportingOutputDir }}/runtime-artifacts.json"
+          - name: cluster-runtime-vulnerability-report
+            path: "{{ .Values.workflowPaths.runtimeReportingOutputDir }}/cluster-runtime-vulnerability-report.json"
+          - name: workload-vulnerability-dashboard
+            path: "{{ .Values.workflowPaths.runtimeReportingOutputDir }}/workload-vulnerability-dashboard.json"
+          - name: application-vulnerability-dashboard
+            path: "{{ .Values.workflowPaths.runtimeReportingOutputDir }}/application-vulnerability-dashboard.json"
+          - name: runtime-vulnerability-summary
+            path: "{{ .Values.workflowPaths.runtimeReportingOutputDir }}/runtime-vulnerability-summary.json"
+          - name: runtime-dashboard-html
+            path: "{{ .Values.workflowPaths.runtimeDashboardHtmlPath }}"
